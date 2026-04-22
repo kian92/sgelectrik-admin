@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -28,10 +30,26 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Check authentication and authorization
   useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/backoffice-login");
+    } else if (status === "authenticated" && session?.user?.role !== "admin") {
+      router.push("/dealer/dashboard");
+    }
+  }, [status, session, router]);
+
+  useEffect(() => {
+    // Only load data if authenticated and is admin
+    if (status !== "authenticated" || session?.user?.role !== "admin") {
+      return;
+    }
+
     async function load() {
       try {
         const [leadsRes, claimsRes] = await Promise.all([
@@ -94,7 +112,35 @@ export default function AdminDashboard() {
       }
     }
     load();
-  }, []);
+  }, [status, session]);
+
+  // Show loading spinner while checking authentication
+  if (status === "loading") {
+    return (
+      <div className="max-w-screen-xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Overview of platform activity
+          </p>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="border-0 shadow-sm">
+              <CardContent className="p-5">
+                <Skeleton className="h-12 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect is handled by useEffect, but return empty while redirecting
+  if (status !== "authenticated" || session?.user?.role !== "admin") {
+    return null;
+  }
 
   const statCards = [
     {

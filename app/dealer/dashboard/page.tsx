@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useDealerAuth } from "@/app/contexts/dealer-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,12 +21,21 @@ interface DealerProfile {
 }
 
 export default function DealerDashboard() {
-  const { dealer } = useDealerAuth();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const { dealer, loading: dealerLoading } = useDealerAuth();
   const [profile, setProfile] = useState<DealerProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Check authentication
   useEffect(() => {
-    if (!dealer?.id) return;
+    if (status === "unauthenticated") {
+      router.push("/backoffice-login");
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (!dealer?.id || dealerLoading) return;
 
     async function load() {
       try {
@@ -40,7 +51,26 @@ export default function DealerDashboard() {
       }
     }
     load();
-  }, [dealer?.id]);
+  }, [dealer?.id, dealerLoading]);
+
+  // Show loading while checking session and dealer
+  if (status === "loading" || dealerLoading) {
+    return (
+      <div className="max-w-screen-xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-slate-900">Loading...</h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Preparing your dashboard
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect unauthenticated users
+  if (status !== "authenticated" || !dealer) {
+    return null;
+  }
 
   return (
     <div className="max-w-screen-xl mx-auto">
