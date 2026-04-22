@@ -15,24 +15,24 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
-interface Stats {
-  totalLeads: number;
-  uniqueUsers: number;
+interface DashboardStats {
+  totalEnquiries: number;
+  totalUsers: number;
   approvedDealers: number;
   pendingClaims: number;
-  recentLeads: Array<{
+  recentEnquiries: Array<{
     id: number;
     name: string;
     preferred_car: string;
     created_at: string;
   }>;
-  topCars: Array<{ car: string; count: number }>;
+  topModels: Array<{ car: string; count: number }>;
 }
 
 export default function AdminDashboard() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Check authentication and authorization
@@ -45,76 +45,25 @@ export default function AdminDashboard() {
   }, [status, session, router]);
 
   useEffect(() => {
-    // Only load data if authenticated and is admin
-    if (status !== "authenticated" || session?.user?.role !== "admin") {
-      return;
-    }
+    if (status !== "authenticated" || session?.user?.role !== "admin") return;
 
     async function load() {
       try {
-        const [leadsRes, claimsRes] = await Promise.all([
-          fetch("/api/leads"),
-          fetch("/api/dealer-claims"),
-        ]);
-
-        const leads: Array<{
-          id: number;
-          name: string;
-          email: string;
-          preferred_car: string;
-          created_at: string;
-        }> = await leadsRes.json();
-        const claims: Array<{ status: string }> = await claimsRes.json();
-
-        // Unique users by email
-        const uniqueUsers = new Set(leads.map((l) => l.email)).size;
-
-        // Claims stats
-        const approvedDealers = claims.filter(
-          (c) => c.status === "approved",
-        ).length;
-        const pendingClaims = claims.filter(
-          (c) => c.status === "pending",
-        ).length;
-
-        // Top cars
-        const carCount: Record<string, number> = {};
-        for (const lead of leads) {
-          carCount[lead.preferred_car] =
-            (carCount[lead.preferred_car] ?? 0) + 1;
-        }
-        const topCars = Object.entries(carCount)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5)
-          .map(([car, count]) => ({ car, count }));
-
-        // Recent 5 leads
-        const recentLeads = [...leads]
-          .sort(
-            (a, b) =>
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime(),
-          )
-          .slice(0, 5);
-
-        setStats({
-          totalLeads: leads.length,
-          uniqueUsers,
-          approvedDealers,
-          pendingClaims,
-          recentLeads,
-          topCars,
-        });
+        const res = await fetch("/api/dashboard");
+        if (!res.ok) throw new Error("Failed to fetch dashboard data");
+        const data: DashboardStats = await res.json();
+        setStats(data);
       } catch (e) {
         console.error(e);
       } finally {
         setLoading(false);
       }
     }
+
     load();
   }, [status, session]);
 
-  // Show loading spinner while checking authentication
+  // Show loading skeleton while session is initializing
   if (status === "loading") {
     return (
       <div className="max-w-screen-xl mx-auto">
@@ -137,7 +86,7 @@ export default function AdminDashboard() {
     );
   }
 
-  // Redirect is handled by useEffect, but return empty while redirecting
+  // Redirect handled by useEffect — render nothing while redirecting
   if (status !== "authenticated" || session?.user?.role !== "admin") {
     return null;
   }
@@ -145,14 +94,14 @@ export default function AdminDashboard() {
   const statCards = [
     {
       label: "Total Enquiries",
-      value: stats?.totalLeads ?? 0,
+      value: stats?.totalEnquiries ?? 0,
       icon: ClipboardList,
       color: "text-blue-600",
       bg: "bg-blue-50",
     },
     {
-      label: "Unique Users",
-      value: stats?.uniqueUsers ?? 0,
+      label: "Total Users",
+      value: stats?.totalUsers ?? 0,
       icon: Users,
       color: "text-violet-600",
       bg: "bg-violet-50",
@@ -207,6 +156,7 @@ export default function AdminDashboard() {
 
       {/* Recent enquiries + top models */}
       <div className="grid lg:grid-cols-3 gap-6">
+        {/* Recent Enquiries */}
         <div className="lg:col-span-2">
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-3">
@@ -222,13 +172,13 @@ export default function AdminDashboard() {
                     <Skeleton key={i} className="h-12 w-full" />
                   ))}
                 </div>
-              ) : stats?.recentLeads.length === 0 ? (
+              ) : !stats?.recentEnquiries.length ? (
                 <p className="text-slate-400 text-sm text-center py-6">
                   No enquiries yet
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {stats?.recentLeads.map((lead) => (
+                  {stats.recentEnquiries.map((lead) => (
                     <div
                       key={lead.id}
                       className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-slate-50 transition-colors"
@@ -252,6 +202,7 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
+        {/* Top Models */}
         <div>
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-3">
@@ -266,13 +217,13 @@ export default function AdminDashboard() {
                     <Skeleton key={i} className="h-10 w-full" />
                   ))}
                 </div>
-              ) : stats?.topCars.length === 0 ? (
+              ) : !stats?.topModels.length ? (
                 <p className="text-slate-400 text-sm text-center py-6">
                   No data yet
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {stats?.topCars.map((item, i) => (
+                  {stats.topModels.map((item, i) => (
                     <div key={i} className="flex items-center gap-3">
                       <div className="h-7 w-7 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
                         <Car className="h-3.5 w-3.5 text-emerald-600" />

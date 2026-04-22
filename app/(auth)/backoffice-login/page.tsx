@@ -42,11 +42,11 @@ export default function SignInPage() {
     setLoading(false);
 
     if (result?.ok) {
-      await refresh(); // sync context from DB
+      await refresh();
       const res = await fetch("/api/auth/session");
       const session = await res.json();
       const role = session?.user?.role;
-      router.push(role === "admin" ? "/admin" : "/dealer");
+      router.push(role === "admin" ? "/admin/dashboard" : "/dealer/dashboard");
     } else {
       setError("Invalid email or password. Please try again.");
     }
@@ -54,7 +54,12 @@ export default function SignInPage() {
 
   async function handleGoogleSignIn() {
     setGoogleLoading(true);
-    await signIn("google", { callbackUrl: "/dealer" });
+    // Let NextAuth handle the full OAuth redirect flow.
+    // callbackUrl tells it where to land AFTER Google returns.
+    // The middleware + authOptions callbacks will redirect
+    // to the correct dashboard based on role from there.
+    await signIn("google", { callbackUrl: "/auth/callback" });
+    // execution won't reach here — browser is redirected to Google
   }
 
   async function handleForgot(e: FormEvent) {
@@ -91,7 +96,6 @@ export default function SignInPage() {
                   Use your backoffice credentials to continue.
                 </p>
 
-                {/* Error */}
                 {error && (
                   <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-5">
                     <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -268,17 +272,6 @@ export default function SignInPage() {
                     Continue with Google
                   </button>
                 </form>
-
-                {/* Demo credentials */}
-                <div className="mt-6 hidden p-4 bg-slate-50 rounded-xl border border-slate-200">
-                  <p className="text-xs font-semibold text-slate-600 mb-2">
-                    Demo credentials
-                  </p>
-                  <div className="space-y-1 text-xs text-slate-500 font-mono">
-                    <div>admin@sgelectrik.sg / Admin@1234</div>
-                    <div>dealer@sgelectrik.sg / Dealer@1234</div>
-                  </div>
-                </div>
 
                 {/* Sign up link */}
                 <p className="text-center text-sm text-slate-500 mt-6">

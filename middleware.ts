@@ -37,15 +37,15 @@ export const middleware = withAuth(
       authorized: ({ token, req }) => {
         const pathname = req.nextUrl.pathname;
 
-        // Allow access to login/signup pages without authentication
+        // Allow these without authentication
         if (
           pathname.startsWith("/backoffice-login") ||
-          pathname.startsWith("/backoffice-signup")
+          pathname.startsWith("/backoffice-signup") ||
+          pathname.startsWith("/auth/callback") // ← add this line
         ) {
           return true;
         }
 
-        // Require token for admin and dealer routes
         if (pathname.startsWith("/admin") || pathname.startsWith("/dealer")) {
           return !!token;
         }
@@ -62,5 +62,6 @@ export const config = {
     "/dealer/:path*",
     "/backoffice-login",
     "/backoffice-signup",
+    "/auth/callback", // ← add this line
   ],
 };
