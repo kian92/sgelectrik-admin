@@ -17,6 +17,7 @@ import {
   ClipboardList,
   Building2,
   ChevronRight,
+  FileDigit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "./lib/utils";
@@ -26,6 +27,7 @@ const ADMIN_NAV = [
   { href: "/admin/claims", label: "Dealer Claims", icon: ClipboardList },
   { href: "/admin/leads", label: "Leads", icon: Users },
   { href: "/admin/dealers", label: "Dealers", icon: Building2 },
+  { href: "/admin/coe-prices", label: "COE Prices", icon: FileDigit },
   { href: "/admin/blog", label: "Blog", icon: BookOpen },
 ];
 
