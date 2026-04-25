@@ -8,7 +8,7 @@ type ToasterToast = ToastProps & {
   id: string;
   title?: React.ReactNode;
   description?: React.ReactNode;
-  action?: React.ReactNode;
+  action?: ToastActionElement; // ← correct
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 };
@@ -133,7 +133,7 @@ function dispatch(action: Action) {
   });
 }
 
-function toast(props: ToastProps & ToastActionElement) {
+function toast(props: Omit<ToasterToast, "id">) {
   const id = genId();
 
   const update = (props: ToasterToast) =>
@@ -146,7 +146,7 @@ function toast(props: ToastProps & ToastActionElement) {
   dispatch({
     type: "ADD_TOAST",
     toast: {
-      ...props,
+      ...(props as ToasterToast), // ← cast here
       id,
       open: true,
       onOpenChange: (open: boolean) => {

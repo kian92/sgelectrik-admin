@@ -19,6 +19,7 @@ import {
   ChevronRight,
   FileDigit,
   Zap,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "./lib/utils";
@@ -31,12 +32,14 @@ const ADMIN_NAV = [
   { href: "/admin/coe-prices", label: "COE Prices", icon: FileDigit },
   { href: "/admin/charging", label: "Charging Map", icon: Zap },
   { href: "/admin/blog", label: "Blog", icon: BookOpen },
+  { href: "/admin/workshops", label: "Workshops", icon: Wrench },
 ];
 
 const DEALER_NAV = [
   { href: "/dealer/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dealer/listings", label: "My Listings", icon: FileText },
   { href: "/dealer/leads", label: "My Leads", icon: Users },
+  { href: "/dealer/workshops", label: "Workshops", icon: Wrench },
 ];
 
 function Sidebar({
