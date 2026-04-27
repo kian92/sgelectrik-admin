@@ -17,6 +17,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useDealerAuth } from "@/app/contexts/dealer-auth";
+import Image from "next/image";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -151,14 +152,26 @@ export default function SignUpPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           {/* ── Brand header ── */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 mb-4">
-              <BatteryCharging className="h-8 w-8 text-emerald-400" />
-              <span className="text-2xl font-bold text-white">SGElectrik</span>
-            </div>
-            <p className="text-slate-400 text-sm">
+          <div className="flex flex-col items-center text-center mb-8 leading-tight">
+            {/* Logo */}
+            <Image
+              src="/icon.png"
+              alt="SGElectrik"
+              width={40}
+              height={40}
+              className="object-contain mb-2"
+            />
+
+            {/* Title */}
+            <span className="text-xl font-bold text-white tracking-wide">
+              SGELECTRIK.COM
+            </span>
+
+            {/* Subtitle */}
+            <span className="text-sm text-slate-400">
+              {" "}
               Backoffice Management Portal
-            </p>
+            </span>
           </div>
 
           {/* ── Card ── */}

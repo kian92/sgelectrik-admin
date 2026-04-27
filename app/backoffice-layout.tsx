@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "./lib/utils";
+import Image from "next/image";
 
 const ADMIN_NAV = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -69,9 +70,22 @@ function Sidebar({
           href="/"
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <BatteryCharging className="h-5 w-5 text-emerald-400" />
-          <span className="font-bold text-sm tracking-tight">SGElectrik</span>
-          <span className="text-xs text-slate-400 font-normal">Backoffice</span>
+          {/* Icon */}
+          <Image
+            src="/icon.png"
+            alt="SGElectrik"
+            width={26}
+            height={26}
+            className="object-contain"
+          />
+
+          {/* Text */}
+          <div className="flex flex-col leading-tight">
+            <span className="font-semibold text-sm tracking-wide text-emerald-400">
+              SGELECTRIK.COM
+            </span>
+            <span className="text-xs text-slate-400">Backoffice</span>
+          </div>
         </Link>
         {mobile && (
           <button onClick={onClose} className="text-slate-400 hover:text-white">
@@ -187,8 +201,22 @@ export default function BackofficeLayout({
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <BatteryCharging className="h-4 w-4 text-emerald-500" />
-            <span className="font-bold text-sm">SGElectrik Backoffice</span>
+            {/* Icon */}
+            <Image
+              src="/icon.png"
+              alt="SGElectrik"
+              width={20}
+              height={20}
+              className="object-contain"
+            />
+
+            {/* Text */}
+            <div className="flex flex-col leading-tight">
+              <span className="text-xs font-semibold text-emerald-600">
+                SGELECTRIK.COM
+              </span>
+              <span className="text-[10px] text-slate-500">Backoffice</span>
+            </div>
           </div>
         </div>
 
