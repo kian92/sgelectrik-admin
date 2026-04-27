@@ -1,9 +1,9 @@
 "use client";
 
-// app/admin/coe-prices/CoePricesClient.tsx
-
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Calendar, CheckCircle2, Pencil, X, Save, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -258,22 +258,23 @@ function EditModal({
 
 export default function CoePricesClient({
   initialCategories,
+  total,
+  page,
+  limit,
 }: {
   initialCategories: CoePrice[];
+  total: number;
+  page: number;
+  limit: number;
 }) {
+  const totalPages = Math.ceil(total / limit);
   const [categories, setCategories] = useState<CoePrice[]>(initialCategories);
   const [editing, setEditing] = useState<CoePrice | null>(null);
+  const router = useRouter();
 
-  // Re-fetch after a save to get fresh data
-  const reload = useCallback(async () => {
-    try {
-      const res = await fetch("/api/coe-prices");
-      const data = await res.json();
-      setCategories(data);
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
+  const reload = () => {
+    router.refresh();
+  };
 
   const evCategories = categories.filter((c) => c.ev_relevant);
 
@@ -420,6 +421,46 @@ export default function CoePricesClient({
             </div>
           );
         })}
+        <div className="mt-10 pt-6 border-t border-slate-200 flex justify-center">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`?page=${Math.max(1, page - 1)}`)}
+              disabled={page === 1}
+            >
+              ← Previous
+            </Button>
+
+            {Array.from({ length: totalPages }).map((_, i) => {
+              const p = i + 1;
+              return (
+                <button
+                  key={p}
+                  onClick={() => router.push(`?page=${p}`)}
+                  className={`h-8 w-8 rounded-lg text-xs font-medium ${
+                    page === p
+                      ? "bg-emerald-600 text-white"
+                      : "bg-white border border-slate-200"
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                router.push(`?page=${Math.min(totalPages, page + 1)}`)
+              }
+              disabled={page === totalPages}
+            >
+              Next →
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Edit modal */}

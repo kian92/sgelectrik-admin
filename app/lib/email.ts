@@ -53,7 +53,6 @@ export async function sendPasswordResetEmail(opts: {
 }) {
   const resend = getResendClient();
   const resetUrl = `${BASE_URL}/reset-password?token=${opts.resetToken}`;
-  console.log("Reset URL", resetUrl, opts);
 
   try {
     const result = await resend.emails.send({
@@ -74,7 +73,6 @@ export async function sendPasswordResetEmail(opts: {
         </div>
       `,
     });
-    console.log("RESEND RESPONSE:", result);
     console.info(`[email] Sent password reset email to ${opts.toEmail}`);
   } catch (err) {
     console.error(
