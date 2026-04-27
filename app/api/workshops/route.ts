@@ -47,8 +47,6 @@ export async function POST(req: NextRequest) {
     status = "active",
   } = body;
 
-  console.log("BB", body);
-
   if (!dealer_id || !name || !slug || !type) {
     return NextResponse.json(
       { error: "dealer_id, name, slug, and type are required" },

@@ -16,7 +16,6 @@ async function getWorkshops(
   dealerId: number,
   isAdmin: boolean,
 ): Promise<Workshop[]> {
-  console.log(dealerId, isAdmin);
   let query = supabaseServer
     .from("workshops")
     .select("*, dealers(id, name, slug)")
@@ -34,7 +33,6 @@ async function getWorkshops(
 
 export default async function WorkshopsAdminPage() {
   const session = await getServerSession(authOptions);
-  console.log("SSS", session);
 
   if (!session?.user) redirect("/login");
 

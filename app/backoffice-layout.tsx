@@ -20,6 +20,7 @@ import {
   FileDigit,
   Zap,
   Wrench,
+  Car,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "./lib/utils";
@@ -33,11 +34,13 @@ const ADMIN_NAV = [
   { href: "/admin/charging", label: "Charging Map", icon: Zap },
   { href: "/admin/blog", label: "Blog", icon: BookOpen },
   { href: "/admin/workshops", label: "Workshops", icon: Wrench },
+  { href: "/admin/rentals", label: "EV Rentals", icon: Car },
 ];
 
 const DEALER_NAV = [
   { href: "/dealer/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dealer/listings", label: "My Listings", icon: FileText },
+  { href: "/dealer/rentals", label: "My Rentals", icon: Car },
   { href: "/dealer/leads", label: "My Leads", icon: Users },
   { href: "/dealer/workshops", label: "Workshops", icon: Wrench },
 ];
