@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/RichTextEditor";
+import { ImageUpload } from "@/components/FileUpload";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -106,6 +107,7 @@ export default function BlogAdmin() {
   >("all");
   const [imageMode, setImageMode] = useState<"gradient" | "url">("gradient");
   const [previewImg, setPreviewImg] = useState("");
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const load = async () => {
     const res = await fetch("/api/blog-posts");
@@ -366,7 +368,32 @@ export default function BlogAdmin() {
                       />
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
+                      <ImageUpload
+                        contentType="blog"
+                        onUploadComplete={(url) => {
+                          setForm((f) => ({ ...f, cover_image: url }));
+                          setPreviewImg(url);
+                          setUploadError(null);
+                        }}
+                        onUploadError={(error) => {
+                          setUploadError(error);
+                        }}
+                        label="Upload Cover Image"
+                        description="Drag and drop or click to upload. PNG, JPG, WebP, or GIF up to 500MB"
+                      />
+
+                      <div className="relative text-center">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-slate-200" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-white px-2 text-slate-500">
+                            Or paste URL
+                          </span>
+                        </div>
+                      </div>
+
                       <div>
                         <Label className="text-xs font-medium text-slate-600 mb-1 block">
                           Image URL
@@ -391,6 +418,13 @@ export default function BlogAdmin() {
                           Recommended size: 1200×630px.
                         </p>
                       </div>
+
+                      {uploadError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <p className="text-sm text-red-700">{uploadError}</p>
+                        </div>
+                      )}
+
                       {previewImg && (
                         <div className="relative rounded-xl overflow-hidden bg-slate-100 h-32">
                           <img
