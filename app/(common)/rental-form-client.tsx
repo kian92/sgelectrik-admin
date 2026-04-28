@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ImageUpload } from "@/components/FileUpload";
 import { ArrowLeft, Car, CheckCircle2, Plus, Trash2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -664,11 +665,23 @@ export function RentalFormClient({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Image ID / URL</Label>
+                    <Label className="text-xs">Vehicle Image</Label>
+                    <ImageUpload
+                      contentType="rentals"
+                      onUploadComplete={(url) => {
+                        setFleet(i, "imageId", url);
+                      }}
+                      label="Upload Vehicle Image"
+                      description="Click or drag to upload"
+                      className="mb-2"
+                    />
+                    <Label className="text-xs text-slate-500 block mb-1">
+                      Or paste URL
+                    </Label>
                     <Input
                       value={f.imageId}
                       onChange={(e) => setFleet(i, "imageId", e.target.value)}
-                      placeholder="image key or URL"
+                      placeholder="https://example.com/vehicle.jpg or image URL"
                     />
                   </div>
                 </div>
