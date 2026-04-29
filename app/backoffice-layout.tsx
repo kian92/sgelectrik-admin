@@ -21,6 +21,7 @@ import {
   Zap,
   Wrench,
   Car,
+  Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "./lib/utils";
@@ -36,6 +37,7 @@ const ADMIN_NAV = [
   { href: "/admin/blog", label: "Blog", icon: BookOpen },
   { href: "/admin/workshops", label: "Workshops", icon: Wrench },
   { href: "/admin/rentals", label: "EV Rentals", icon: Car },
+  { href: "/admin/commercial-evs", label: "Commercial EVs", icon: Truck },
 ];
 
 const DEALER_NAV = [
@@ -44,6 +46,7 @@ const DEALER_NAV = [
   { href: "/dealer/rentals", label: "My Rentals", icon: Car },
   { href: "/dealer/leads", label: "My Leads", icon: Users },
   { href: "/dealer/workshops", label: "Workshops", icon: Wrench },
+  { href: "/dealer/commercial-evs", label: "Commercial EVs", icon: Truck },
 ];
 
 function Sidebar({
