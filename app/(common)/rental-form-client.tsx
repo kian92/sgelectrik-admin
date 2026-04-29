@@ -281,7 +281,7 @@ export function RentalFormClient({
   const title = editingId ? "Edit Rental Company" : "Add Rental Company";
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-full mx-auto">
       {/* Header */}
       <div className="mb-8">
         <Link href={backHref}>

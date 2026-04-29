@@ -1,117 +1,137 @@
-import * as React from "react";
-import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
-
-import { ButtonProps, buttonVariants } from "@/components/ui/button";
+// components/ui/pagination.tsx
+import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/app/lib/utils";
 
-const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
-  <nav
-    role="navigation"
-    aria-label="pagination"
-    className={cn("mx-auto flex w-full justify-center", className)}
-    {...props}
-  />
-);
-Pagination.displayName = "Pagination";
+const WINDOW = 5; // pages visible at a time
 
-const PaginationContent = React.forwardRef<
-  HTMLUListElement,
-  React.ComponentProps<"ul">
->(({ className, ...props }, ref) => (
-  <ul
-    ref={ref}
-    className={cn("flex flex-row items-center gap-1", className)}
-    {...props}
-  />
-));
-PaginationContent.displayName = "PaginationContent";
+function getPageWindow(current: number, total: number) {
+  // Which block of 5 are we in? e.g. page 6 → block starting at 6
+  const blockStart = Math.floor((current - 1) / WINDOW) * WINDOW + 1;
+  const blockEnd = Math.min(blockStart + WINDOW - 1, total);
 
-const PaginationItem = React.forwardRef<
-  HTMLLIElement,
-  React.ComponentProps<"li">
->(({ className, ...props }, ref) => (
-  <li ref={ref} className={cn("", className)} {...props} />
-));
-PaginationItem.displayName = "PaginationItem";
+  const pages: number[] = [];
+  for (let i = blockStart; i <= blockEnd; i++) pages.push(i);
+  return { pages, blockStart, blockEnd };
+}
 
-type PaginationLinkProps = {
-  isActive?: boolean;
-} & Pick<ButtonProps, "size"> &
-  React.ComponentProps<"a">;
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  /** base path – defaults to current path, appends ?page=N */
+  basePath?: string;
+}
 
-const PaginationLink = ({
-  className,
-  isActive,
-  size = "icon",
-  ...props
-}: PaginationLinkProps) => (
-  <a
-    aria-current={isActive ? "page" : undefined}
-    className={cn(
-      buttonVariants({
-        variant: isActive ? "outline" : "ghost",
-        size,
-      }),
-      className,
-    )}
-    {...props}
-  />
-);
-PaginationLink.displayName = "PaginationLink";
+export function Pagination({
+  currentPage,
+  totalPages,
+  basePath = "",
+}: PaginationProps) {
+  const { pages, blockStart, blockEnd } = getPageWindow(
+    currentPage,
+    totalPages,
+  );
 
-const PaginationPrevious = ({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
-  <PaginationLink
-    aria-label="Go to previous page"
-    size="default"
-    className={cn("gap-1 pl-2.5", className)}
-    {...props}
-  >
-    <ChevronLeft className="h-4 w-4" />
-    <span>Previous</span>
-  </PaginationLink>
-);
-PaginationPrevious.displayName = "PaginationPrevious";
+  const href = (p: number) => `${basePath}?page=${p}`;
 
-const PaginationNext = ({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) => (
-  <PaginationLink
-    aria-label="Go to next page"
-    size="default"
-    className={cn("gap-1 pr-2.5", className)}
-    {...props}
-  >
-    <span>Next</span>
-    <ChevronRight className="h-4 w-4" />
-  </PaginationLink>
-);
-PaginationNext.displayName = "PaginationNext";
+  // Prev goes to last page of previous block (or page 1)
+  const prevPage =
+    currentPage === blockStart
+      ? Math.max(1, blockStart - 1) // jump to end of previous block
+      : currentPage - 1;
 
-const PaginationEllipsis = ({
-  className,
-  ...props
-}: React.ComponentProps<"span">) => (
-  <span
-    aria-hidden
-    className={cn("flex h-9 w-9 items-center justify-center", className)}
-    {...props}
-  >
-    <MoreHorizontal className="h-4 w-4" />
-    <span className="sr-only">More pages</span>
-  </span>
-);
-PaginationEllipsis.displayName = "PaginationEllipsis";
+  // Next goes to first page of next block (or last page)
+  const nextPage =
+    currentPage === blockEnd
+      ? Math.min(totalPages, blockEnd + 1) // jump to start of next block
+      : currentPage + 1;
 
-export {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-};
+  const isPrevDisabled = currentPage === 1;
+  const isNextDisabled = currentPage === totalPages;
+
+  return (
+    <nav aria-label="Pagination" className="flex items-center gap-1">
+      {/* Prev */}
+      <PaginationLink
+        href={href(prevPage)}
+        disabled={isPrevDisabled}
+        aria-label="Previous page"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        <span className="sr-only sm:not-sr-only sm:ml-1 text-sm">Prev</span>
+      </PaginationLink>
+
+      {/* Page numbers */}
+      {pages.map((p) => (
+        <PaginationLink
+          key={p}
+          href={href(p)}
+          active={p === currentPage}
+          aria-label={`Page ${p}`}
+          aria-current={p === currentPage ? "page" : undefined}
+        >
+          {p}
+        </PaginationLink>
+      ))}
+
+      {/* Next */}
+      <PaginationLink
+        href={href(nextPage)}
+        disabled={isNextDisabled}
+        aria-label="Next page"
+      >
+        <span className="sr-only sm:not-sr-only sm:mr-1 text-sm">Next</span>
+        <ChevronRight className="h-4 w-4" />
+      </PaginationLink>
+    </nav>
+  );
+}
+
+// ─── internal link ────────────────────────────────────────────────────────────
+
+interface PLProps {
+  href: string;
+  active?: boolean;
+  disabled?: boolean;
+  children: React.ReactNode;
+  "aria-label"?: string;
+  "aria-current"?: "page" | undefined;
+}
+
+function PaginationLink({
+  href,
+  active,
+  disabled,
+  children,
+  ...rest
+}: PLProps) {
+  const base =
+    "inline-flex items-center justify-center rounded-md min-w-[2.25rem] h-9 px-2 text-sm font-medium transition-colors select-none";
+
+  if (disabled) {
+    return (
+      <span
+        className={cn(base, "text-slate-300 cursor-not-allowed")}
+        aria-disabled="true"
+        {...rest}
+      >
+        {children}
+      </span>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      className={cn(
+        base,
+        active
+          ? "bg-slate-900 text-white shadow-sm"
+          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+      )}
+      {...rest}
+    >
+      {children}
+    </Link>
+  );
+}
