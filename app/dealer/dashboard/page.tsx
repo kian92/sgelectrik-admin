@@ -99,7 +99,10 @@ export default function DealerDashboard() {
                 </p>
               </div>
             </div>
-            <Link href={`/dealers/${profile.slug}`} target="_blank">
+            <Link
+              href={`${process.env.NEXT_PUBLIC_URL}/dealers/${profile.id}`}
+              target="_blank"
+            >
               <Button variant="outline" size="sm" className="gap-2 bg-white">
                 <ExternalLink className="h-3.5 w-3.5" /> View public profile
               </Button>
@@ -176,7 +179,7 @@ export default function DealerDashboard() {
                       </span>
                     </div>
                     <Link
-                      href={`/cars/${id}`}
+                      href={`${process.env.NEXT_PUBLIC_URL}/cars/${id}`}
                       className="text-xs text-emerald-600 hover:underline"
                     >
                       View

@@ -47,6 +47,7 @@ const DEALER_NAV = [
   { href: "/dealer/leads", label: "My Leads", icon: Users },
   { href: "/dealer/workshops", label: "Workshops", icon: Wrench },
   { href: "/dealer/commercial-evs", label: "Commercial EVs", icon: Truck },
+  { href: "/dealer/cars", label: "My Cars", icon: Car },
 ];
 
 function Sidebar({
