@@ -31,7 +31,7 @@ export type CommercialEv = Awaited<ReturnType<typeof getEvs>>[number];
 
 export default async function AdminCommercialEvsPage() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") redirect("/login");
+  if (!session || session.user.role !== "admin") redirect("/backoffice-login");
 
   const evs = await getEvs();
 

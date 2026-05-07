@@ -73,14 +73,14 @@ export default async function DealerLeadsPage() {
 
   // Redirect unauthenticated users
   if (!session?.user?.email) {
-    redirect("/backoffice/login");
+    redirect("/backoffice/backoffice-login");
   }
 
   // Look up dealer row by the logged-in email
   const dealer = await getDealerByEmail(session.user.email);
 
   if (!dealer) {
-    redirect("/backoffice/login");
+    redirect("/backoffice/backoffice-login");
   }
 
   // Fetch all leads assigned to this dealer

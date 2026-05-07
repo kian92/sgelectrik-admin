@@ -78,10 +78,10 @@ async function getRentalsByDealerId(
 
 export default async function DealerRentalsPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) redirect("/backoffice/login");
+  if (!session?.user?.email) redirect("/backoffice-login");
 
   const dealerId = await getDealerIdByEmail(session.user.email);
-  if (!dealerId) redirect("/backoffice/login");
+  if (!dealerId) redirect("/backoffice-login");
 
   const companies = await getRentalsByDealerId(dealerId);
 

@@ -36,10 +36,10 @@ export default async function DealerEditCommercialEvPage({ params }: Params) {
   const session = await getServerSession(authOptions);
 
   // ✅ Same auth pattern
-  if (!session?.user?.email) redirect("/login");
+  if (!session?.user?.email) redirect("/backoffice-login");
 
   const dealer = await getDealerByEmail(session.user.email);
-  if (!dealer) redirect("/login");
+  if (!dealer) redirect("/backoffice-login");
 
   const { id } = await params;
   const ev = await getEv(parseInt(id));

@@ -39,7 +39,7 @@ async function getWorkshop(id: number, dealerId: number): Promise<Workshop> {
 
 export default async function DealerEditWorkshopPage({ params }: Props) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect("/backoffice-login");
 
   const { id: rawId } = await params;
   const id = parseInt(rawId);

@@ -34,7 +34,7 @@ async function getWorkshops(
 export default async function WorkshopsAdminPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect("/backoffice-login");
 
   const isAdmin = session.user.role === "admin";
   const workshops = await getWorkshops(session.user.id, isAdmin);

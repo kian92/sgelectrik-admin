@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { CommercialEvForm } from "@/app/(common)/CommercialForm";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { supabaseServer } from "@/app/lib/supabase-server";
+import { AddListingForm } from "./AddCarsListing";
 
 async function getDealerByEmail(email: string) {
   const { data, error } = await supabaseServer
     .from("dealers")
-    .select("id, slug")
+    .select("id, slug, name")
     .eq("email", email)
     .eq("role", "dealer")
     .maybeSingle();
@@ -20,21 +20,12 @@ async function getDealerByEmail(email: string) {
   return data;
 }
 
-export default async function DealerNewCommercialEvPage() {
+export default async function DealerNewListingPage() {
   const session = await getServerSession(authOptions);
-
-  // ✅ Same pattern as rentals
   if (!session?.user?.email) redirect("/backoffice-login");
 
   const dealer = await getDealerByEmail(session.user.email);
   if (!dealer) redirect("/backoffice-login");
 
-  return (
-    <CommercialEvForm
-      role="dealer"
-      dealerId={dealer.id}
-      dealerSlug={dealer.slug ?? ""}
-      backHref="/dealer/commercial-evs"
-    />
-  );
+  return <AddListingForm dealerSlug={dealer.slug} dealerName={dealer.name} />;
 }

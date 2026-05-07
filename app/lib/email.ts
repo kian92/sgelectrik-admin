@@ -2,7 +2,8 @@ import { Resend } from "resend";
 
 const FROM_ADDRESS = "noreply@fusiontools.ai";
 const FROM_NAME = "SGElectrik";
-const BASE_URL = process.env.APP_BASE_URL ?? "https://sgtravelagents.com";
+const BASE_URL =
+  process.env.APP_BASE_URL ?? "https://sgelectrik-web.vercel.app";
 
 function getResendClient(): Resend {
   const apiKey = process.env.RESEND_API_KEY;
