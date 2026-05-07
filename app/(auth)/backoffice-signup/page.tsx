@@ -107,7 +107,7 @@ export default function SignUpPage() {
     } else {
       // Signup succeeded but auto-login failed — send to login
       setSuccess(true);
-      setTimeout(() => router.push("/login"), 1800);
+      setTimeout(() => router.push("/backoffice-login"), 1800);
     }
   }
 

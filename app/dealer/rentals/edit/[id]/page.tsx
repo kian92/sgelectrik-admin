@@ -45,10 +45,10 @@ async function getRentalCompany(id: string, dealerId: number) {
 export default async function DealerEditRentalPage({ params }: Props) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) redirect("/backoffice/login");
+  if (!session?.user?.email) redirect("/backoffice-login");
 
   const dealerId = await getDealerIdByEmail(session.user.email);
-  if (!dealerId) redirect("/backoffice/login");
+  if (!dealerId) redirect("/backoffice-login");
 
   const company = await getRentalCompany(id, dealerId);
   if (!company) notFound();

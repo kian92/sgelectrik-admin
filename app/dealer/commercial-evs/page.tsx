@@ -50,10 +50,10 @@ export type DealerCommercialEv = Awaited<ReturnType<typeof getEvs>>[number];
 export default async function DealerCommercialEvsPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email) redirect("/login");
+  if (!session?.user?.email) redirect("/backoffice-login");
 
   const dealerId = await getDealerIdByEmail(session.user.email);
-  if (!dealerId) redirect("/login");
+  if (!dealerId) redirect("/backoffice-login");
 
   const evs = await getEvs(dealerId);
 

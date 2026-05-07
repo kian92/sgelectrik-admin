@@ -24,10 +24,10 @@ async function getDealerIdByEmail(email: string): Promise<number | null> {
 
 export default async function DealerNewRentalPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) redirect("/backoffice/login");
+  if (!session?.user?.email) redirect("/backoffice-login");
 
   const dealerId = await getDealerIdByEmail(session.user.email);
-  if (!dealerId) redirect("/backoffice/login");
+  if (!dealerId) redirect("/backoffice-login");
 
   return (
     <RentalFormClient

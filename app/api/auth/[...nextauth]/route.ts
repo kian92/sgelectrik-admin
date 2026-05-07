@@ -147,8 +147,8 @@ export const authOptions: NextAuthOptions = {
   },
 
   pages: {
-    signIn: "/login",
-    error: "/login",
+    signIn: "/backoffice-login",
+    error: "/backoffice-login",
   },
 
   session: { strategy: "jwt" },

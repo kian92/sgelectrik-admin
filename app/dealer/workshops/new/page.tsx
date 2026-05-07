@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default async function DealerNewWorkshopPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user) redirect("/login");
+  if (!session?.user) redirect("/backoffice-login");
 
   return (
     <WorkshopForm

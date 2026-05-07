@@ -25,7 +25,7 @@ async function getDealers() {
 
 export default async function EditCommercialEvPage({ params }: Params) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") redirect("/login");
+  if (!session || session.user.role !== "admin") redirect("/backoffice-login");
 
   const { id } = await params;
   const [ev, dealers] = await Promise.all([getEv(parseInt(id)), getDealers()]);
