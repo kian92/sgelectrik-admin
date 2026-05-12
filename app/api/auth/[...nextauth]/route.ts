@@ -1,24 +1,21 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { supabaseServer } from "@/app/lib/supabase-server";
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-
     CredentialsProvider({
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
+
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
 
         const { data: dealer } = await supabaseServer
           .from("dealers")
@@ -28,13 +25,18 @@ export const authOptions: NextAuthOptions = {
           .not("password", "is", null)
           .single();
 
-        if (!dealer || !dealer.password) return null;
+        if (!dealer || !dealer.password) {
+          return null;
+        }
 
         const valid = await bcrypt.compare(
           credentials.password,
           dealer.password,
         );
-        if (!valid) return null;
+
+        if (!valid) {
+          return null;
+        }
 
         return {
           id: String(dealer.id),
@@ -46,63 +48,15 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    // ── On sign in: upsert Google dealers into dealers table ──────────────
-    async signIn({ user, account }) {
-      if (account?.provider === "google") {
-        const { data: existing } = await supabaseServer
-          .from("dealers")
-          .select("id")
-          .eq("email", user.email!)
-          .single();
-
-        if (!existing) {
-          // Auto-generate a slug from name + timestamp
-          const slug =
-            (user.name ?? "dealer")
-              .toLowerCase()
-              .replace(/\s+/g, "-")
-              .replace(/[^a-z0-9-]/g, "") +
-            "-" +
-            Date.now();
-
-          await supabaseServer.from("dealers").insert({
-            slug,
-            name: user.name,
-            short_name: user.name,
-            email: user.email,
-            avatar_url: user.image,
-            provider: "google",
-            provider_id: account.providerAccountId,
-            role: "dealer", // default role for Google sign-ins
-            status: "active",
-          });
-        }
-      }
-      return true;
-    },
-
-    // ── Build JWT with dealer-specific fields ─────────────────────────────
-    async jwt({ token, user, account }) {
+    // ── JWT ─────────────────────────────────────────────
+    async jwt({ token, user }) {
       // On login
       if (user) {
-        if (account?.provider === "credentials") {
-          token.dbId = Number(user.id);
-        }
-
-        if (account?.provider === "google") {
-          const { data } = await supabaseServer
-            .from("dealers")
-            .select("id")
-            .eq("email", user.email!)
-            .single();
-
-          token.dbId = data?.id ?? null;
-        }
-
-        token.provider = account?.provider;
+        token.dbId = Number(user.id);
+        token.provider = "credentials";
       }
 
-      // Always fetch latest dealer data on every request
+      // Always fetch latest dealer data
       if (token.dbId) {
         const { data } = await supabaseServer
           .from("dealers")
@@ -129,7 +83,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
 
-    // ── Expose dealer fields on the session ───────────────────────────────
+    // ── Session ────────────────────────────────────────
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.dbId as number;
@@ -142,6 +96,7 @@ export const authOptions: NextAuthOptions = {
         session.user.avatar = token.avatar as string | null;
         session.user.provider = token.provider as string;
       }
+
       return session;
     },
   },
@@ -151,9 +106,13 @@ export const authOptions: NextAuthOptions = {
     error: "/backoffice-login",
   },
 
-  session: { strategy: "jwt" },
+  session: {
+    strategy: "jwt",
+  },
+
   secret: process.env.NEXTAUTH_SECRET,
 };
 
 const handler = NextAuth(authOptions);
+
 export { handler as GET, handler as POST };
