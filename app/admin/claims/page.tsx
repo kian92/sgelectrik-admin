@@ -13,28 +13,34 @@ import {
   Mail,
   Phone,
   Globe,
+  MapPin,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
 
-type ClaimStatus = "pending" | "approved" | "rejected";
+// ── Types ──────────────────────────────────────────────────────────────────────
+type DealerStatus = "pending" | "active" | "inactive";
+type FilterStatus = "all" | "pending" | "active" | "inactive";
 
-interface Claim {
+interface Dealer {
   id: number;
-  company_name: string;
-  contact_name: string;
-  email: string;
-  phone: string;
-  brands: string;
+  slug: string;
+  name: string;
+  short_name?: string;
+  email?: string;
+  phone?: string;
+  brands?: string[] | string;
   website?: string;
-  message?: string;
-  status: ClaimStatus;
-  admin_notes?: string;
+  area?: string;
+  address?: string;
+  status: DealerStatus;
+  role: string;
   created_at: string;
 }
 
+// ── Config ─────────────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<
-  ClaimStatus,
+  DealerStatus,
   { label: string; color: string; icon: typeof Clock }
 > = {
   pending: {
@@ -42,37 +48,42 @@ const STATUS_CONFIG: Record<
     color: "bg-amber-50 text-amber-700 border-amber-200",
     icon: Clock,
   },
-  approved: {
-    label: "Approved",
+
+  active: {
+    label: "Active",
     color: "bg-emerald-50 text-emerald-700 border-emerald-200",
     icon: CheckCircle2,
   },
-  rejected: {
-    label: "Rejected",
+
+  inactive: {
+    label: "Inactive",
     color: "bg-red-50 text-red-700 border-red-200",
     icon: XCircle,
   },
 };
+// label shown on filter pills
+const FILTER_LABELS: Record<FilterStatus, string> = {
+  all: "All",
+  pending: "Pending",
+  active: "Approved",
+  inactive: "Rejected",
+};
 
-const FILTERS: Array<ClaimStatus | "all"> = [
-  "all",
-  "pending",
-  "approved",
-  "rejected",
-];
+const FILTERS: FilterStatus[] = ["all", "pending", "active", "inactive"];
 
+// ── Component ──────────────────────────────────────────────────────────────────
 export default function AdminClaims() {
-  const [claims, setClaims] = useState<Claim[]>([]);
+  const [dealers, setDealers] = useState<Dealer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<ClaimStatus | "all">("all");
+  const [filter, setFilter] = useState<FilterStatus>("all");
   const [expanded, setExpanded] = useState<number | null>(null);
   const [updating, setUpdating] = useState<number | null>(null);
 
   const load = async () => {
     try {
-      const res = await fetch("/api/dealer-claims");
+      const res = await fetch("/api/pending-dealers");
       const data = await res.json();
-      setClaims(data);
+      setDealers(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -84,10 +95,10 @@ export default function AdminClaims() {
     load();
   }, []);
 
-  const updateStatus = async (id: number, status: ClaimStatus) => {
+  const updateStatus = async (id: number, status: DealerStatus) => {
     setUpdating(id);
     try {
-      await fetch(`/api/dealer-claims/${id}`, {
+      await fetch(`/api/pending-dealers/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -98,32 +109,34 @@ export default function AdminClaims() {
     }
   };
 
-  const deleteClaim = async (id: number) => {
-    if (!confirm("Delete this claim?")) return;
-    await fetch(`/api/dealer-claims/${id}`, { method: "DELETE" });
+  const deleteDealer = async (id: number) => {
+    if (!confirm("Delete this dealer account permanently?")) return;
+    await fetch(`/api/pending-dealers/${id}`, { method: "DELETE" });
     await load();
   };
 
+  // ── Derived ────────────────────────────────────────────────────────────────
   const filtered =
-    filter === "all" ? claims : claims.filter((c) => c.status === filter);
+    filter === "all" ? dealers : dealers.filter((d) => d.status === filter);
 
-  const counts = {
-    all: claims.length,
-    pending: claims.filter((c) => c.status === "pending").length,
-    approved: claims.filter((c) => c.status === "approved").length,
-    rejected: claims.filter((c) => c.status === "rejected").length,
+  const counts: Record<FilterStatus, number> = {
+    all: dealers.length,
+    pending: dealers.filter((d) => d.status === "pending").length,
+    active: dealers.filter((d) => d.status === "active").length,
+    inactive: dealers.filter((d) => d.status === "inactive").length,
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-screen-xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Dealer Claims</h1>
         <p className="text-slate-500 text-sm mt-1">
-          Applications from companies wanting to join the platform
+          Manage dealer accounts on the platform
         </p>
       </div>
 
-      {/* Filter tabs */}
+      {/* Filter pills */}
       <div className="flex gap-2 mb-6 flex-wrap">
         {FILTERS.map((f) => (
           <button
@@ -135,8 +148,7 @@ export default function AdminClaims() {
                 : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
             }`}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}{" "}
-            <span className="opacity-60">({counts[f]})</span>
+            {FILTER_LABELS[f]} <span className="opacity-60">({counts[f]})</span>
           </button>
         ))}
       </div>
@@ -152,22 +164,22 @@ export default function AdminClaims() {
         <Card className="border-0 shadow-sm">
           <CardContent className="py-16 text-center text-slate-400">
             <Building2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p>No {filter === "all" ? "" : filter} claims</p>
+            <p>No {FILTER_LABELS[filter].toLowerCase()} dealers</p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
-          {filtered.map((claim) => {
+          {filtered.map((dealer) => {
             const {
               label,
               color,
               icon: StatusIcon,
-            } = STATUS_CONFIG[claim.status];
-            const isExpanded = expanded === claim.id;
+            } = STATUS_CONFIG[dealer.status];
+            const isExpanded = expanded === dealer.id;
 
             return (
               <Card
-                key={claim.id}
+                key={dealer.id}
                 className="border-0 shadow-sm overflow-hidden"
               >
                 <CardContent className="p-0">
@@ -180,48 +192,59 @@ export default function AdminClaims() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 flex-wrap">
                         <p className="font-semibold text-slate-900">
-                          {claim.company_name}
+                          {dealer.name}
                         </p>
                         <span
                           className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border ${color}`}
                         >
                           <StatusIcon className="h-3 w-3" /> {label}
                         </span>
+                        <span className="text-xs text-slate-400 capitalize">
+                          {dealer.role}
+                        </span>
                       </div>
                       <div className="flex items-center gap-4 mt-1 text-xs text-slate-500 flex-wrap">
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" /> {claim.email}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" /> {claim.phone}
-                        </span>
-                        <span>Brands: {claim.brands}</span>
+                        {dealer.email && (
+                          <span className="flex items-center gap-1">
+                            <Mail className="h-3 w-3" /> {dealer.email}
+                          </span>
+                        )}
+                        {dealer.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" /> {dealer.phone}
+                          </span>
+                        )}
+                        {dealer.area && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" /> {dealer.area}
+                          </span>
+                        )}
                         <span>
-                          {format(new Date(claim.created_at), "d MMM yyyy")}
+                          {format(new Date(dealer.created_at), "d MMM yyyy")}
                         </span>
                       </div>
                     </div>
 
                     {/* Quick actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {claim.status === "pending" && (
+                      {dealer.status === "pending" && (
                         <>
                           <Button
                             size="sm"
                             variant="outline"
                             className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
-                            disabled={updating === claim.id}
-                            onClick={() => updateStatus(claim.id, "approved")}
+                            disabled={updating === dealer.id}
+                            onClick={() => updateStatus(dealer.id, "active")}
                           >
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />{" "}
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                             Approve
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             className="text-red-700 border-red-200 hover:bg-red-50"
-                            disabled={updating === claim.id}
-                            onClick={() => updateStatus(claim.id, "rejected")}
+                            disabled={updating === dealer.id}
+                            onClick={() => updateStatus(dealer.id, "inactive")}
                           >
                             <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
                           </Button>
@@ -229,7 +252,7 @@ export default function AdminClaims() {
                       )}
                       <button
                         onClick={() =>
-                          setExpanded(isExpanded ? null : claim.id)
+                          setExpanded(isExpanded ? null : dealer.id)
                         }
                         className="text-slate-400 hover:text-slate-600 p-1"
                       >
@@ -246,44 +269,48 @@ export default function AdminClaims() {
                   {isExpanded && (
                     <div className="px-5 pb-5 border-t border-slate-100">
                       <div className="grid sm:grid-cols-2 gap-4 mt-4 text-sm">
-                        <div>
-                          <p className="text-xs font-medium text-slate-500 mb-1">
-                            Contact Person
-                          </p>
-                          <p className="text-slate-800">{claim.contact_name}</p>
-                        </div>
-                        {claim.website && (
+                        {dealer.short_name && (
+                          <div>
+                            <p className="text-xs font-medium text-slate-500 mb-1">
+                              Short Name
+                            </p>
+                            <p className="text-slate-800">
+                              {dealer.short_name}
+                            </p>
+                          </div>
+                        )}
+                        {dealer.address && (
+                          <div>
+                            <p className="text-xs font-medium text-slate-500 mb-1">
+                              Address
+                            </p>
+                            <p className="text-slate-800">{dealer.address}</p>
+                          </div>
+                        )}
+                        {dealer.website && (
                           <div>
                             <p className="text-xs font-medium text-slate-500 mb-1">
                               Website
                             </p>
                             <a
-                              href={claim.website}
+                              href={dealer.website}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-emerald-600 hover:underline flex items-center gap-1"
                             >
-                              <Globe className="h-3.5 w-3.5" /> {claim.website}
+                              <Globe className="h-3.5 w-3.5" /> {dealer.website}
                             </a>
                           </div>
                         )}
-                        {claim.message && (
-                          <div className="sm:col-span-2">
+                        {dealer.brands && (
+                          <div>
                             <p className="text-xs font-medium text-slate-500 mb-1">
-                              Message
+                              Brands
                             </p>
-                            <p className="text-slate-700 bg-slate-50 rounded-lg px-3 py-2">
-                              {claim.message}
-                            </p>
-                          </div>
-                        )}
-                        {claim.admin_notes && (
-                          <div className="sm:col-span-2">
-                            <p className="text-xs font-medium text-slate-500 mb-1">
-                              Admin Notes
-                            </p>
-                            <p className="text-slate-700 bg-amber-50 rounded-lg px-3 py-2">
-                              {claim.admin_notes}
+                            <p className="text-slate-800">
+                              {Array.isArray(dealer.brands)
+                                ? dealer.brands.join(", ")
+                                : dealer.brands}
                             </p>
                           </div>
                         )}
@@ -291,34 +318,34 @@ export default function AdminClaims() {
 
                       {/* Status actions */}
                       <div className="flex items-center gap-2 mt-4">
-                        {claim.status !== "pending" && (
+                        {dealer.status !== "pending" && (
                           <Button
                             size="sm"
                             variant="outline"
-                            disabled={updating === claim.id}
-                            onClick={() => updateStatus(claim.id, "pending")}
+                            disabled={updating === dealer.id}
+                            onClick={() => updateStatus(dealer.id, "pending")}
                           >
                             Set Pending
                           </Button>
                         )}
-                        {claim.status !== "approved" && (
+                        {dealer.status !== "active" && (
                           <Button
                             size="sm"
                             variant="outline"
                             className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
-                            disabled={updating === claim.id}
-                            onClick={() => updateStatus(claim.id, "approved")}
+                            disabled={updating === dealer.id}
+                            onClick={() => updateStatus(dealer.id, "active")}
                           >
                             Approve
                           </Button>
                         )}
-                        {claim.status !== "rejected" && (
+                        {dealer.status !== "inactive" && (
                           <Button
                             size="sm"
                             variant="outline"
                             className="text-red-700 border-red-200 hover:bg-red-50"
-                            disabled={updating === claim.id}
-                            onClick={() => updateStatus(claim.id, "rejected")}
+                            disabled={updating === dealer.id}
+                            onClick={() => updateStatus(dealer.id, "inactive")}
                           >
                             Reject
                           </Button>
@@ -327,7 +354,7 @@ export default function AdminClaims() {
                           size="sm"
                           variant="ghost"
                           className="text-red-500 hover:text-red-700 ml-auto"
-                          onClick={() => deleteClaim(claim.id)}
+                          onClick={() => deleteDealer(dealer.id)}
                         >
                           Delete
                         </Button>

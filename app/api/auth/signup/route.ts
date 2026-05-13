@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       email,
       password: hashedPassword,
       role,
-      status: "active",
+      status: "pending",
     })
     .select("id, name, email, role, created_at")
     .single();
