@@ -15,6 +15,7 @@ import {
   Store,
   AlertCircle,
   CheckCircle2,
+  Clock,
 } from "lucide-react";
 import { useDealerAuth } from "@/app/contexts/dealer-auth";
 import Image from "next/image";
@@ -73,7 +74,6 @@ export default function SignUpPage() {
 
     setLoading(true);
 
-    // 1. Create account via API
     const res = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -81,64 +81,39 @@ export default function SignUpPage() {
     });
 
     const data = await res.json();
+    setLoading(false);
 
     if (!res.ok) {
-      setLoading(false);
       setError(data.error ?? "Something went wrong. Please try again.");
       return;
     }
 
-    // 2. Auto sign in after successful signup
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    setLoading(false);
-
-    if (result?.ok) {
-      await refresh(); // sync context from DB
-      setSuccess(true);
-      setTimeout(() => {
-        router.push(
-          role === "admin" ? "/admin/dashboard" : "/dealer/dashboard",
-        );
-      }, 1800);
-    } else {
-      // Signup succeeded but auto-login failed — send to login
-      setSuccess(true);
-      setTimeout(() => router.push("/backoffice-login"), 1800);
-    }
+    setSuccess(true);
   }
 
-  // ── Success screen ─────────────────────────────────────────────────────────
+  // Replace the success screen
   if (success) {
     return (
       <div className="min-h-screen flex bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="flex-1 flex flex-col items-center justify-center px-4">
           <div className="w-full max-w-md">
             <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-50 mb-5">
-                <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-50 mb-5">
+                <Clock className="h-8 w-8 text-amber-500" />
               </div>
               <h2 className="text-xl font-bold text-slate-900 mb-2">
-                Account created!
+                Request submitted!
               </h2>
-              <p className="text-slate-500 text-sm mb-1">
-                Welcome to SGElectrik Backoffice.
+              <p className="text-slate-600 text-sm mb-3">
+                Your account request has been sent to our admin team for review.
               </p>
-              <p className="text-slate-400 text-xs">Redirecting you now…</p>
-              <div className="mt-6 h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500 rounded-full"
-                  style={{ animation: "progress 1.8s linear forwards" }}
-                />
-              </div>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                You'll receive an email once your account is approved. This
+                usually takes 1–2 business days.
+              </p>
             </div>
           </div>
         </div>
-        <style>{`@keyframes progress { from { width: 0% } to { width: 100% } }`}</style>
       </div>
     );
   }
