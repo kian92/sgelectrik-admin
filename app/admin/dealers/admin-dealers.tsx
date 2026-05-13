@@ -493,6 +493,7 @@ export default function AdminDealersClient({
     return matchArea && matchSearch;
   });
 
+  console.log("FFF", filtered);
   function openAdd() {
     setEditing(null);
     setModal("add");
@@ -610,7 +611,10 @@ export default function AdminDealersClient({
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <Link href={`/dealers/${dealer.slug}`} target="_blank">
+                    <Link
+                      href={`${process.env.NEXT_PUBLIC_URL}/dealers/${dealer.id}`}
+                      target="_blank"
+                    >
                       <Button size="sm" variant="outline" className="gap-1.5">
                         <ExternalLink className="h-3.5 w-3.5" /> View
                       </Button>
