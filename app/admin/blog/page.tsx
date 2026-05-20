@@ -16,7 +16,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RichTextEditor } from "@/components/RichTextEditor";
+import {
+  JsonContentBuilder,
+  type ContentBlock,
+} from "@/components/JsonContentBuilder";
 import { ImageUpload } from "@/components/FileUpload";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,7 +29,7 @@ interface BlogPost {
   slug: string;
   title: string;
   excerpt: string;
-  content: string;
+  content: ContentBlock[] | string;
   category: string;
   author: string;
   author_role: string;
@@ -63,7 +66,7 @@ const EMPTY_FORM: {
   title: string;
   slug: string;
   excerpt: string;
-  content: string;
+  content: ContentBlock[];
   category: string;
   author: string;
   author_role: string;
@@ -76,7 +79,7 @@ const EMPTY_FORM: {
   title: "",
   slug: "",
   excerpt: "",
-  content: "",
+  content: [],
   category: "Guide",
   author: "SGElectrik Team",
   author_role: "Editor",
@@ -136,11 +139,28 @@ export default function BlogAdmin() {
 
   function openEdit(post: BlogPost) {
     setEditing(post);
+    let parsedContent: ContentBlock[] = [];
+
+    if (typeof post.content === "string") {
+      try {
+        // Handle double-stringified JSON (legacy)
+        let parsed = JSON.parse(post.content);
+        if (typeof parsed === "string") {
+          parsed = JSON.parse(parsed);
+        }
+        parsedContent = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        parsedContent = [];
+      }
+    } else if (Array.isArray(post.content)) {
+      parsedContent = post.content;
+    }
+
     setForm({
       title: post.title,
       slug: post.slug,
       excerpt: post.excerpt,
-      content: post.content,
+      content: parsedContent,
       category: post.category,
       author: post.author,
       author_role: post.author_role,
@@ -173,6 +193,7 @@ export default function BlogAdmin() {
     setSaving(true);
     const payload = {
       ...form,
+      content: form.content,
       cover_image:
         imageMode === "url" && form.cover_image ? form.cover_image : null,
       tags: JSON.stringify(
@@ -456,16 +477,16 @@ export default function BlogAdmin() {
                 </div>
               </div>
 
-              {/* WYSIWYG Content */}
+              {/* JSON Content Builder */}
               <div>
-                <Label className="text-xs font-medium text-slate-600 mb-1.5 block">
-                  Content *
+                <Label className="text-xs font-medium text-slate-600 mb-2 block">
+                  Content (JSON Blocks) *
                 </Label>
-                <RichTextEditor
+                <JsonContentBuilder
                   value={form.content}
-                  onChange={(html) => setForm((f) => ({ ...f, content: html }))}
-                  placeholder="Write your article here. Use the toolbar above for formatting — headings, bold, lists, links, and images."
-                  minHeight={360}
+                  onChange={(blocks) =>
+                    setForm((f) => ({ ...f, content: blocks }))
+                  }
                 />
               </div>
 
@@ -620,17 +641,31 @@ export default function BlogAdmin() {
                 <CardContent className="p-4 flex items-start gap-4">
                   {/* Cover thumbnail */}
                   <div className="flex-shrink-0 h-14 w-24 rounded-xl overflow-hidden">
-                    {post.cover_image ? (
-                      <img
-                        src={post.cover_image}
-                        alt={post.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
+                    <div className="flex-shrink-0 h-14 w-24 rounded-xl overflow-hidden bg-slate-100">
+                      {post.cover_image ? (
+                        <img
+                          src={post.cover_image}
+                          alt={post.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+
+                            const fallback = e.currentTarget
+                              .nextElementSibling as HTMLElement;
+
+                            if (fallback) {
+                              fallback.style.display = "block";
+                            }
+                          }}
+                        />
+                      ) : null}
+
                       <div
-                        className={`w-full h-full bg-gradient-to-r ${post.cover_gradient}`}
+                        className={`w-full h-full bg-gradient-to-r ${post.cover_gradient} ${
+                          post.cover_image ? "hidden" : "block"
+                        }`}
                       />
-                    )}
+                    </div>
                   </div>
 
                   <div className="flex-1 min-w-0">
