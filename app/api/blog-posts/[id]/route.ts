@@ -26,6 +26,15 @@ export async function PATCH(
   const { id } = await context.params;
   const body = await req.json();
 
+  // Ensure content is always an array, never double-stringified
+  if (typeof body.content === "string") {
+    try {
+      body.content = JSON.parse(body.content);
+    } catch {
+      body.content = [];
+    }
+  }
+
   if (body.status === "published" && !body.published_at) {
     body.published_at = new Date().toISOString();
   }
