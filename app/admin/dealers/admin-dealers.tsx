@@ -462,6 +462,10 @@ export default function AdminDealersClient({
   const [confirmDelete, setConfirmDelete] = useState<DealerDB | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  useEffect(() => {
+    setDealers(initialDealers);
+  }, [initialDealers]);
+
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/dealers");
