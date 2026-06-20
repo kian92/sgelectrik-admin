@@ -49,6 +49,8 @@ interface ExistingCar {
   year?: number | null;
   mileage?: number | null;
   image_url?: string;
+  dealer_id?: number | null;
+  dealer_slug?: string | null;
 }
 
 type Props =
@@ -157,7 +159,10 @@ function buildInitialForm(existing?: ExistingCar) {
     imageUrl: existing.image_url ?? "",
     description: existing.description ?? "",
     highlights: parseHighlights(existing.highlights),
-    dealerKey: "",
+    dealerKey:
+      existing.dealer_id != null
+        ? `${existing.dealer_id}::${existing.dealer_slug ?? ""}`
+        : "",
   };
 }
 

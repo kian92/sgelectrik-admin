@@ -32,6 +32,7 @@ const ADMIN_NAV = [
   { href: "/admin/claims", label: "Dealer Claims", icon: ClipboardList },
   { href: "/admin/leads", label: "Leads", icon: Users },
   { href: "/admin/dealers", label: "Dealers", icon: Building2 },
+  { href: "/admin/cars", label: "Cars", icon: Car },
   { href: "/admin/coe-prices", label: "COE Prices", icon: FileDigit },
   { href: "/admin/charging", label: "Charging Map", icon: Zap },
   { href: "/admin/blog", label: "Blog", icon: BookOpen },

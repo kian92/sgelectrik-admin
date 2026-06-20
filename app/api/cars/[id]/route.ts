@@ -42,6 +42,11 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     highlights,
   } = body;
 
+  const { dealerId, dealerSlug } = body as {
+    dealerId?: number;
+    dealerSlug?: string;
+  } & typeof body;
+
   const { error } = await supabaseServer
     .from("cars")
     .update({
@@ -73,6 +78,48 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   if (error) {
     console.error("Update car:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (dealerId !== undefined) {
+    const targetDealerId = Number(dealerId);
+    const { data: currentDealers, error: currentDealerError } = await supabaseServer
+      .from("dealers")
+      .select("id, car_ids")
+      .contains("car_ids", JSON.stringify([id]));
+
+    if (currentDealerError) {
+      console.error("Lookup current dealer for car update:", currentDealerError.message);
+    }
+
+    if (currentDealers?.length) {
+      await Promise.all(
+        currentDealers.map((dealer) => {
+          if (dealer.id === targetDealerId) return Promise.resolve();
+          const updated = (dealer.car_ids as string[]).filter((cid) => cid !== id);
+          return supabaseServer
+            .from("dealers")
+            .update({ car_ids: updated })
+            .eq("id", dealer.id);
+        }),
+      );
+    }
+
+    const { data: newDealer } = await supabaseServer
+      .from("dealers")
+      .select("car_ids")
+      .eq("id", targetDealerId)
+      .maybeSingle();
+
+    const existingIds: string[] = Array.isArray(newDealer?.car_ids)
+      ? newDealer.car_ids
+      : [];
+
+    if (!existingIds.includes(id)) {
+      await supabaseServer
+        .from("dealers")
+        .update({ car_ids: [...existingIds, id] })
+        .eq("id", targetDealerId);
+    }
   }
 
   return NextResponse.json({ success: true });
