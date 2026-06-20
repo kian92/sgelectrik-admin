@@ -5,7 +5,7 @@ import { supabaseServer } from "@/app/lib/supabase-server";
 import { CarForm } from "@/app/(common)/CarForm";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 async function getDealers() {
@@ -54,6 +54,7 @@ async function getAssignedDealer(id: string) {
 }
 
 export default async function AdminEditCarPage({ params }: Props) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "admin") {
     redirect("/backoffice-login");
@@ -61,8 +62,8 @@ export default async function AdminEditCarPage({ params }: Props) {
 
   const [dealers, car, assignedDealer] = await Promise.all([
     getDealers(),
-    getCar(params.id),
-    getAssignedDealer(params.id),
+    getCar(id),
+    getAssignedDealer(id),
   ]);
 
   if (!car) {
