@@ -17,6 +17,8 @@ import {
   ExternalLink,
   Save,
   Loader2,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -461,6 +463,7 @@ export default function AdminDealersClient({
   const [editing, setEditing] = useState<DealerDB | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<DealerDB | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   useEffect(() => {
     setDealers(initialDealers);
@@ -475,6 +478,23 @@ export default function AdminDealersClient({
       console.error(e);
     }
   }, []);
+
+  async function handleToggleStatus(dealer: DealerDB) {
+    setTogglingId(dealer.id);
+    const newStatus = dealer.status === "active" ? "inactive" : "active";
+    try {
+      await fetch(`/api/dealers/${dealer.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      setDealers((prev) =>
+        prev.map((d) => (d.id === dealer.id ? { ...d, status: newStatus } : d)),
+      );
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   async function handleDelete(id: number) {
     setDeleting(true);
@@ -630,6 +650,25 @@ export default function AdminDealersClient({
                       onClick={() => openEdit(dealer)}
                     >
                       <Pencil className="h-3.5 w-3.5" /> Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={togglingId === dealer.id}
+                      className={
+                        dealer.status === "active"
+                          ? "text-amber-500 hover:text-amber-700 hover:bg-amber-50 gap-1"
+                          : "text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 gap-1"
+                      }
+                      onClick={() => handleToggleStatus(dealer)}
+                    >
+                      {togglingId === dealer.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : dealer.status === "active" ? (
+                        <><EyeOff className="h-3.5 w-3.5" /> Disable</>
+                      ) : (
+                        <><Eye className="h-3.5 w-3.5" /> Enable</>
+                      )}
                     </Button>
                     <Button
                       size="sm"
