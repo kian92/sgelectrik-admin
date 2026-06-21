@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, CheckCircle2, Pencil, X, Save, Loader2 } from "lucide-react";
+import { Calendar, CheckCircle2, Pencil, X, Save, Loader2, History } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -289,6 +290,11 @@ export default function CoePricesClient({
             each LTA bidding exercise
           </p>
         </div>
+        <Link href="/admin/coe-prices/history">
+          <Button variant="outline" className="gap-2">
+            <History className="h-4 w-4" /> View History
+          </Button>
+        </Link>
       </div>
 
       {/* Info banner */}
