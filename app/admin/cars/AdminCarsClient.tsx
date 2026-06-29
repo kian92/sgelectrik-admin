@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +57,10 @@ export default function AdminCarsClient({
   const [page, setPage] = useState(1);
   const [cars, setCars] = useState(initialCars);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCars(initialCars);
+  }, [initialCars]);
 
   async function handleToggleFeatured(car: AdminCar) {
     setTogglingId(car.id);
