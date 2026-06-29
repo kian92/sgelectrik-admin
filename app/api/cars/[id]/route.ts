@@ -40,6 +40,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     imageUrl,
     description,
     highlights,
+    featured,
   } = body;
 
   const { dealerId, dealerSlug } = body as {
@@ -71,6 +72,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       image_url: imageUrl,
       description,
       highlights,
+      ...(featured !== undefined && { featured }),
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);
