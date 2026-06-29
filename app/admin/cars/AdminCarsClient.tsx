@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Car, Pencil, Plus } from "lucide-react";
+import { Car, Pencil, Plus, Star, Loader2 } from "lucide-react";
 import { DeleteCarButton } from "@/app/dealer/cars/DeleteCarButton";
 
 interface DealerOption {
@@ -35,6 +35,7 @@ interface AdminCar {
   range_km: number;
   image_url: string;
   created_at: string;
+  featured: boolean;
   dealerId: number | null;
   dealerName: string;
   dealerSlug: string;
@@ -54,10 +55,28 @@ export default function AdminCarsClient({
   const [search, setSearch] = useState("");
   const [dealerFilter, setDealerFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [cars, setCars] = useState(initialCars);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  async function handleToggleFeatured(car: AdminCar) {
+    setTogglingId(car.id);
+    try {
+      await fetch(`/api/cars/${car.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ featured: !car.featured }),
+      });
+      setCars((prev) =>
+        prev.map((c) => (c.id === car.id ? { ...c, featured: !car.featured } : c)),
+      );
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   const filteredCars = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return initialCars.filter((car) => {
+    return cars.filter((car) => {
       const matchesDealer =
         dealerFilter === "all" || String(car.dealerId) === dealerFilter;
       const matchesSearch =
@@ -68,7 +87,7 @@ export default function AdminCarsClient({
         car.dealerName.toLowerCase().includes(query);
       return matchesDealer && matchesSearch;
     });
-  }, [initialCars, search, dealerFilter]);
+  }, [cars, search, dealerFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCars.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -148,6 +167,7 @@ export default function AdminCarsClient({
                   <TableHead>Year</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Range</TableHead>
+                  <TableHead>Featured</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -197,6 +217,22 @@ export default function AdminCarsClient({
                         ` – S$${car.price_max.toLocaleString()}`}
                     </TableCell>
                     <TableCell className="text-slate-600">{car.range_km} km</TableCell>
+                    <TableCell>
+                      <button
+                        onClick={() => handleToggleFeatured(car)}
+                        disabled={togglingId === car.id}
+                        title={car.featured ? "Unfeature" : "Feature this car"}
+                        className="p-1 rounded hover:bg-slate-100 transition-colors disabled:opacity-40"
+                      >
+                        {togglingId === car.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                        ) : (
+                          <Star
+                            className={`h-4 w-4 ${car.featured ? "fill-amber-400 text-amber-400" : "text-slate-300"}`}
+                          />
+                        )}
+                      </button>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button asChild size="sm" variant="outline" className="gap-1 h-8">

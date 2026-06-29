@@ -29,6 +29,7 @@ interface CarRow {
   range_km: number;
   image_url: string;
   created_at: string;
+  featured: boolean;
 }
 
 async function getDealers(): Promise<DealerRow[]> {
@@ -49,7 +50,7 @@ async function getCars(): Promise<CarRow[]> {
   const { data, error } = await supabaseServer
     .from("cars")
     .select(
-      "id, name, brand, model, car_type, condition, year, price_min, price_max, range_km, image_url, created_at",
+      "id, name, brand, model, car_type, condition, year, price_min, price_max, range_km, image_url, created_at, featured",
     )
     .order("created_at", { ascending: false });
 
