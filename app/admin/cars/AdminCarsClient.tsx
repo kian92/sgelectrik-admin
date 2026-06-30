@@ -23,7 +23,7 @@ interface DealerOption {
 }
 
 interface AdminCar {
-  id: string;
+  id: number;
   name: string;
   brand: string;
   model: string;
@@ -56,7 +56,7 @@ export default function AdminCarsClient({
   const [dealerFilter, setDealerFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [cars, setCars] = useState(initialCars);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   useEffect(() => {
     setCars(initialCars);

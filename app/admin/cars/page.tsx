@@ -13,11 +13,11 @@ interface DealerRow {
   id: number;
   name: string;
   slug: string;
-  car_ids: string[];
+  car_ids: number[];
 }
 
 interface CarRow {
-  id: string;
+  id: number;
   name: string;
   brand: string;
   model: string;
@@ -77,7 +77,8 @@ export default async function AdminCarsPage({
   const carsWithDealers = cars.map((car) => {
     const dealer = dealers.find(
       (dealerRow) =>
-        Array.isArray(dealerRow.car_ids) && dealerRow.car_ids.includes(car.id),
+        Array.isArray(dealerRow.car_ids) &&
+        dealerRow.car_ids.map(Number).includes(car.id),
     );
 
     return {

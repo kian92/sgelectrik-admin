@@ -23,10 +23,13 @@ async function getDealers() {
 }
 
 async function getCar(id: string) {
+  const carId = Number(id);
+  if (!Number.isInteger(carId)) return null;
+
   const { data, error } = await supabaseServer
     .from("cars")
     .select("*")
-    .eq("id", id)
+    .eq("id", carId)
     .maybeSingle();
 
   if (error) {
@@ -38,10 +41,13 @@ async function getCar(id: string) {
 }
 
 async function getAssignedDealer(id: string) {
+  const carId = Number(id);
+  if (!Number.isInteger(carId)) return null;
+
   const { data, error } = await supabaseServer
     .from("dealers")
     .select("id, slug, name")
-    .contains("car_ids", JSON.stringify([id]))
+    .contains("car_ids", JSON.stringify([carId]))
     .limit(1)
     .maybeSingle();
 

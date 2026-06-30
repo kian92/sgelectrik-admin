@@ -4,6 +4,21 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { supabaseServer } from "@/app/lib/supabase-server";
 
+async function getNextCarId(): Promise<number> {
+  const { data, error } = await supabaseServer
+    .from("cars")
+    .select("id")
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to generate car id: ${error.message}`);
+  }
+
+  return (data?.id ?? 0) + 1;
+}
+
 // ─── POST /api/cars ───────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -14,7 +29,6 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
 
   const {
-    id,
     name,
     brand,
     model,
@@ -34,51 +48,72 @@ export async function POST(req: NextRequest) {
     seats,
     monthlyEstimate,
     imageUrl,
+    galleryImages,
     description,
     highlights,
     dealerId,
-    dealerSlug,
   } = body;
 
-  if (!id || !name || !brand || !model) {
+  if (!name || !brand || !model) {
     return NextResponse.json(
-      { error: "id, name, brand and model are required" },
+      { error: "name, brand and model are required" },
       { status: 400 },
     );
   }
 
-  // Insert the car
-  const { error: carError } = await supabaseServer.from("cars").insert({
-    id,
-    name,
-    brand,
-    model,
-    car_type: carType ?? "Sedan",
-    condition: condition ?? "new",
-    year: year ?? null,
-    mileage: mileage ?? null,
-    price_min: priceMin ?? 0,
-    price_max: priceMax ?? 0,
-    range_km: rangeKm ?? 0,
-    charging_time_fast: chargingTimeFast ?? "",
-    charging_time_slow: chargingTimeSlow ?? "",
-    rebate_eligible: rebateEligible ?? false,
-    rebate_amount: rebateEligible ? (rebateAmount ?? null) : null,
-    acceleration: acceleration ?? "",
-    top_speed: topSpeed ?? 0,
-    seats: seats ?? 5,
-    monthly_estimate: monthlyEstimate ?? 0,
-    image_url: imageUrl ?? "",
-    description: description ?? "",
-    highlights: highlights ?? "[]",
-  });
+  const gallery =
+    Array.isArray(galleryImages) && galleryImages.length > 0
+      ? galleryImages
+      : null;
 
-  if (carError) {
-    console.error("Insert car:", carError.message);
-    return NextResponse.json({ error: carError.message }, { status: 500 });
+  let nextId: number;
+  try {
+    nextId = await getNextCarId();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to generate car id";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  // Append car id to dealer's car_ids array
+  const { data: newCar, error: carError } = await supabaseServer
+    .from("cars")
+    .insert({
+      id: nextId,
+      name,
+      brand,
+      model,
+      car_type: carType ?? "Sedan",
+      condition: condition ?? "new",
+      year: year ?? null,
+      mileage: mileage ?? null,
+      price_min: priceMin ?? 0,
+      price_max: priceMax ?? 0,
+      range_km: rangeKm ?? 0,
+      charging_time_fast: chargingTimeFast ?? "",
+      charging_time_slow: chargingTimeSlow ?? "",
+      rebate_eligible: rebateEligible ?? false,
+      rebate_amount: rebateEligible ? (rebateAmount ?? null) : null,
+      acceleration: acceleration ?? "",
+      top_speed: topSpeed ?? 0,
+      seats: seats ?? 5,
+      monthly_estimate: monthlyEstimate ?? 0,
+      image_url: imageUrl ?? "",
+      gallery_images: gallery,
+      description: description ?? "",
+      highlights: highlights ?? "[]",
+    })
+    .select("id")
+    .single();
+
+  if (carError || !newCar) {
+    console.error("Insert car:", carError?.message);
+    return NextResponse.json(
+      { error: carError?.message ?? "Failed to create car" },
+      { status: 500 },
+    );
+  }
+
+  const carId = newCar.id as number;
+
   if (dealerId) {
     const { data: dealer } = await supabaseServer
       .from("dealers")
@@ -86,15 +121,17 @@ export async function POST(req: NextRequest) {
       .eq("id", dealerId)
       .maybeSingle();
 
-    const existing: string[] = Array.isArray(dealer?.car_ids)
-      ? dealer.car_ids
+    const existing: number[] = Array.isArray(dealer?.car_ids)
+      ? dealer.car_ids.map(Number)
       : [];
 
-    await supabaseServer
-      .from("dealers")
-      .update({ car_ids: [...existing, id] })
-      .eq("id", dealerId);
+    if (!existing.includes(carId)) {
+      await supabaseServer
+        .from("dealers")
+        .update({ car_ids: [...existing, carId] })
+        .eq("id", dealerId);
+    }
   }
 
-  return NextResponse.json({ success: true }, { status: 201 });
+  return NextResponse.json({ success: true, id: carId }, { status: 201 });
 }

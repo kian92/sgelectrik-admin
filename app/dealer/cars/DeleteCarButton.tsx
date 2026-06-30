@@ -18,7 +18,7 @@ import { Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Props {
-  carId: string;
+  carId: number | string;
   carName: string;
 }
 

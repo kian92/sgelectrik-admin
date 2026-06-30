@@ -25,10 +25,13 @@ async function getDealerByEmail(email: string) {
 }
 
 async function getCar(id: string) {
+  const carId = Number(id);
+  if (!Number.isInteger(carId)) return null;
+
   const { data, error } = await supabaseServer
     .from("cars")
     .select("*")
-    .eq("id", id)
+    .eq("id", carId)
     .maybeSingle();
 
   if (error) {
@@ -36,15 +39,12 @@ async function getCar(id: string) {
     return null;
   }
 
-  console.log("SSS", id, data);
-
   return data;
 }
 
 export default async function DealerEditCarPage({ params }: Props) {
   const session = await getServerSession(authOptions);
   const { id } = await params;
-  console.log("papa", id);
 
   if (!session?.user?.email) redirect("/login");
 
