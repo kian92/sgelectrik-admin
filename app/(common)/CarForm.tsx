@@ -15,8 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Car, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Car, CheckCircle2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUpload } from "@/components/FileUpload";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,7 +28,7 @@ interface DealerOption {
 }
 
 interface ExistingCar {
-  id: string;
+  id: number;
   name: string;
   brand: string;
   model: string;
@@ -49,6 +50,7 @@ interface ExistingCar {
   year?: number | null;
   mileage?: number | null;
   image_url?: string;
+  gallery_images?: string[] | string | null;
   dealer_id?: number | null;
   dealer_slug?: string | null;
 }
@@ -86,13 +88,6 @@ const CONDITIONS = ["new", "used"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function slugify(s: string) {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
 function parseHighlights(raw?: string | null): string {
   if (!raw) return "";
   try {
@@ -103,10 +98,20 @@ function parseHighlights(raw?: string | null): string {
   }
 }
 
+function parseGalleryImages(raw?: string[] | string | null): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 function buildInitialForm(existing?: ExistingCar) {
   if (!existing) {
     return {
-      id: "",
       name: "",
       brand: "",
       model: "",
@@ -126,6 +131,7 @@ function buildInitialForm(existing?: ExistingCar) {
       seats: "5",
       monthlyEstimate: "",
       imageUrl: "",
+      galleryImages: [] as string[],
       description: "",
       highlights: "",
       dealerKey: "",
@@ -133,7 +139,6 @@ function buildInitialForm(existing?: ExistingCar) {
   }
 
   return {
-    id: existing.id ?? "",
     name: existing.name ?? "",
     brand: existing.brand ?? "",
     model: existing.model ?? "",
@@ -157,6 +162,7 @@ function buildInitialForm(existing?: ExistingCar) {
         ? String(existing.monthly_estimate)
         : "",
     imageUrl: existing.image_url ?? "",
+    galleryImages: parseGalleryImages(existing.gallery_images),
     description: existing.description ?? "",
     highlights: parseHighlights(existing.highlights),
     dealerKey:
@@ -182,10 +188,16 @@ export function CarForm({
 
   const isEdit = !!existing;
   const [form, setForm] = useState(() => buildInitialForm(existing));
-  const [autoId, setAutoId] = useState(!existing);
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  function removeGalleryImage(index: number) {
+    setForm((f) => ({
+      ...f,
+      galleryImages: f.galleryImages.filter((_, i) => i !== index),
+    }));
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -208,7 +220,6 @@ export function CarForm({
     }
 
     const body = {
-      id: slugify(form.id),
       name: form.name,
       brand: form.brand,
       model: form.model,
@@ -228,6 +239,7 @@ export function CarForm({
       seats: parseInt(form.seats) || 5,
       monthlyEstimate: parseInt(form.monthlyEstimate) || 0,
       imageUrl: form.imageUrl,
+      galleryImages: form.galleryImages,
       description: form.description,
       highlights: JSON.stringify(highlightsArr),
       dealerId: resolvedDealerId,
@@ -288,32 +300,19 @@ export function CarForm({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              {/* ID — only for new cars; locked on edit */}
-              <div className="space-y-1.5 col-span-2">
-                <Label>
-                  ID (slug) <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  required
-                  value={form.id}
-                  readOnly={isEdit}
-                  onChange={(e) => {
-                    setAutoId(false);
-                    set("id", e.target.value);
-                  }}
-                  placeholder="e.g. byd-atto-3-2024"
-                  className={
-                    isEdit
-                      ? "bg-slate-50 text-slate-400 cursor-not-allowed"
-                      : ""
-                  }
-                />
-                {!isEdit && (
+              {isEdit && existing && (
+                <div className="space-y-1.5 col-span-2">
+                  <Label>Car ID</Label>
+                  <Input
+                    readOnly
+                    value={String(existing.id)}
+                    className="bg-slate-50 text-slate-400 cursor-not-allowed"
+                  />
                   <p className="text-xs text-slate-400">
-                    Unique identifier — auto-filled from name, or set manually.
+                    Auto-generated by the database.
                   </p>
-                )}
-              </div>
+                </div>
+              )}
 
               <div className="space-y-1.5 col-span-2">
                 <Label>
@@ -322,10 +321,7 @@ export function CarForm({
                 <Input
                   required
                   value={form.name}
-                  onChange={(e) => {
-                    set("name", e.target.value);
-                    if (autoId && !isEdit) set("id", slugify(e.target.value));
-                  }}
+                  onChange={(e) => set("name", e.target.value)}
                   placeholder="e.g. BYD Atto 3"
                 />
               </div>
@@ -596,14 +592,72 @@ export function CarForm({
             <CardTitle className="text-base">Content</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Image URL</Label>
-              <Input
-                value={form.imageUrl}
-                onChange={(e) => set("imageUrl", e.target.value)}
-                placeholder="https://..."
+            <div className="space-y-2">
+              <Label>Main image</Label>
+              {form.imageUrl ? (
+                <div className="relative rounded-xl overflow-hidden bg-slate-100 h-40 mb-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={form.imageUrl}
+                    alt="Main preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => set("imageUrl", "")}
+                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : null}
+              <ImageUpload
+                contentType="vehicles"
+                onUploadComplete={(url) => set("imageUrl", url)}
+                label="Upload main image"
+                description="PNG, JPG, or WebP. Used as the primary listing photo."
               />
             </div>
+
+            <div className="space-y-2">
+              <Label>Gallery images</Label>
+              <p className="text-xs text-slate-400">
+                Add extra photos — upload one at a time.
+              </p>
+              {form.galleryImages.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
+                  {form.galleryImages.map((url, index) => (
+                    <div
+                      key={`${url}-${index}`}
+                      className="relative rounded-lg overflow-hidden bg-slate-100 aspect-video"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`Gallery ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeGalleryImage(index)}
+                        className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <ImageUpload
+                contentType="vehicles"
+                onUploadComplete={(url) =>
+                  set("galleryImages", [...form.galleryImages, url])
+                }
+                label="Add gallery image"
+                description="Upload additional photos for the car gallery."
+              />
+            </div>
+
             <div className="space-y-1.5">
               <Label>Description</Label>
               <Textarea

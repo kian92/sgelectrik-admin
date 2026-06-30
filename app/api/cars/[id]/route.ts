@@ -8,6 +8,11 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+function parseCarId(raw: string): number | null {
+  const id = Number(raw);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
 // ─── PATCH /api/cars/[id] ─────────────────────────────────────────────────────
 
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
@@ -15,7 +20,12 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   if (!session?.user?.email)
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const carId = parseCarId(rawId);
+  if (carId === null) {
+    return NextResponse.json({ error: "Invalid car id" }, { status: 400 });
+  }
+
   const body = await req.json();
 
   const {
@@ -38,44 +48,58 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     seats,
     monthlyEstimate,
     imageUrl,
+    galleryImages,
     description,
     highlights,
     featured,
   } = body;
 
-  const { dealerId, dealerSlug } = body as {
+  const { dealerId } = body as {
     dealerId?: number;
     dealerSlug?: string;
   } & typeof body;
 
+  const updatePayload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (name !== undefined) updatePayload.name = name;
+  if (brand !== undefined) updatePayload.brand = brand;
+  if (model !== undefined) updatePayload.model = model;
+  if (carType !== undefined) updatePayload.car_type = carType;
+  if (condition !== undefined) updatePayload.condition = condition;
+  if (year !== undefined) updatePayload.year = year ?? null;
+  if (mileage !== undefined) updatePayload.mileage = mileage ?? null;
+  if (priceMin !== undefined) updatePayload.price_min = priceMin;
+  if (priceMax !== undefined) updatePayload.price_max = priceMax;
+  if (rangeKm !== undefined) updatePayload.range_km = rangeKm;
+  if (chargingTimeFast !== undefined)
+    updatePayload.charging_time_fast = chargingTimeFast;
+  if (chargingTimeSlow !== undefined)
+    updatePayload.charging_time_slow = chargingTimeSlow;
+  if (rebateEligible !== undefined) {
+    updatePayload.rebate_eligible = rebateEligible;
+    updatePayload.rebate_amount = rebateEligible ? rebateAmount : null;
+  }
+  if (acceleration !== undefined) updatePayload.acceleration = acceleration;
+  if (topSpeed !== undefined) updatePayload.top_speed = topSpeed;
+  if (seats !== undefined) updatePayload.seats = seats;
+  if (monthlyEstimate !== undefined)
+    updatePayload.monthly_estimate = monthlyEstimate;
+  if (imageUrl !== undefined) updatePayload.image_url = imageUrl;
+  if (galleryImages !== undefined) {
+    updatePayload.gallery_images = Array.isArray(galleryImages)
+      ? galleryImages
+      : [];
+  }
+  if (description !== undefined) updatePayload.description = description;
+  if (highlights !== undefined) updatePayload.highlights = highlights;
+  if (featured !== undefined) updatePayload.featured = featured;
+
   const { error } = await supabaseServer
     .from("cars")
-    .update({
-      name,
-      brand,
-      model,
-      car_type: carType,
-      condition,
-      year: year ?? null,
-      mileage: mileage ?? null,
-      price_min: priceMin,
-      price_max: priceMax,
-      range_km: rangeKm,
-      charging_time_fast: chargingTimeFast,
-      charging_time_slow: chargingTimeSlow,
-      rebate_eligible: rebateEligible,
-      rebate_amount: rebateEligible ? rebateAmount : null,
-      acceleration,
-      top_speed: topSpeed,
-      seats,
-      monthly_estimate: monthlyEstimate,
-      image_url: imageUrl,
-      description,
-      highlights,
-      ...(featured !== undefined && { featured }),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id);
+    .update(updatePayload)
+    .eq("id", carId);
 
   if (error) {
     console.error("Update car:", error.message);
@@ -84,20 +108,26 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
   if (dealerId !== undefined) {
     const targetDealerId = Number(dealerId);
-    const { data: currentDealers, error: currentDealerError } = await supabaseServer
-      .from("dealers")
-      .select("id, car_ids")
-      .contains("car_ids", JSON.stringify([id]));
+    const { data: currentDealers, error: currentDealerError } =
+      await supabaseServer
+        .from("dealers")
+        .select("id, car_ids")
+        .contains("car_ids", JSON.stringify([carId]));
 
     if (currentDealerError) {
-      console.error("Lookup current dealer for car update:", currentDealerError.message);
+      console.error(
+        "Lookup current dealer for car update:",
+        currentDealerError.message,
+      );
     }
 
     if (currentDealers?.length) {
       await Promise.all(
         currentDealers.map((dealer) => {
           if (dealer.id === targetDealerId) return Promise.resolve();
-          const updated = (dealer.car_ids as string[]).filter((cid) => cid !== id);
+          const updated = (dealer.car_ids as number[])
+            .map(Number)
+            .filter((cid) => cid !== carId);
           return supabaseServer
             .from("dealers")
             .update({ car_ids: updated })
@@ -112,14 +142,14 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       .eq("id", targetDealerId)
       .maybeSingle();
 
-    const existingIds: string[] = Array.isArray(newDealer?.car_ids)
-      ? newDealer.car_ids
+    const existingIds: number[] = Array.isArray(newDealer?.car_ids)
+      ? newDealer.car_ids.map(Number)
       : [];
 
-    if (!existingIds.includes(id)) {
+    if (!existingIds.includes(carId)) {
       await supabaseServer
         .from("dealers")
-        .update({ car_ids: [...existingIds, id] })
+        .update({ car_ids: [...existingIds, carId] })
         .eq("id", targetDealerId);
     }
   }
@@ -134,26 +164,30 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
   if (!session?.user?.email)
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const carId = parseCarId(rawId);
+  if (carId === null) {
+    return NextResponse.json({ error: "Invalid car id" }, { status: 400 });
+  }
 
-  // Remove the car
-  const { error } = await supabaseServer.from("cars").delete().eq("id", id);
+  const { error } = await supabaseServer.from("cars").delete().eq("id", carId);
 
   if (error) {
     console.error("Delete car:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Also remove the id from any dealer's car_ids array
   const { data: dealers } = await supabaseServer
     .from("dealers")
     .select("id, car_ids")
-    .contains("car_ids", JSON.stringify([id]));
+    .contains("car_ids", JSON.stringify([carId]));
 
   if (dealers?.length) {
     await Promise.all(
       dealers.map((d) => {
-        const updated = (d.car_ids as string[]).filter((cid) => cid !== id);
+        const updated = (d.car_ids as number[])
+          .map(Number)
+          .filter((cid) => cid !== carId);
         return supabaseServer
           .from("dealers")
           .update({ car_ids: updated })

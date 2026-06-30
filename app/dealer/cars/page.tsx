@@ -24,7 +24,7 @@ const PAGE_WINDOW = 5; // how many page numbers to show at once
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CarRow {
-  id: string;
+  id: number;
   name: string;
   brand: string;
   model: string;
@@ -61,10 +61,13 @@ async function getDealerByEmail(email: string) {
 }
 
 async function getDealerCars(
-  carIds: string[],
+  carIds: number[],
   page: number,
 ): Promise<{ cars: CarRow[]; total: number }> {
   if (!carIds.length) return { cars: [], total: 0 };
+
+  const numericIds = carIds.map(Number).filter((id) => Number.isInteger(id));
+  if (!numericIds.length) return { cars: [], total: 0 };
 
   const from = (page - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
@@ -75,7 +78,7 @@ async function getDealerCars(
       "id, name, brand, model, car_type, condition, year, price_min, price_max, range_km, image_url, created_at",
       { count: "exact" },
     )
-    .in("id", carIds)
+    .in("id", numericIds)
     .order("created_at", { ascending: false })
     .range(from, to);
 
@@ -207,7 +210,9 @@ export default async function DealerCarsPage({ searchParams }: PageProps) {
   const { page: pageParam } = await searchParams;
   const currentPage = Math.max(1, parseInt(pageParam ?? "1") || 1);
 
-  const carIds: string[] = Array.isArray(dealer.car_ids) ? dealer.car_ids : [];
+  const carIds: number[] = Array.isArray(dealer.car_ids)
+    ? dealer.car_ids.map(Number)
+    : [];
   const { cars, total } = await getDealerCars(carIds, currentPage);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
