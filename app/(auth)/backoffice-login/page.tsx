@@ -42,11 +42,12 @@ export default function SignInPage() {
     setLoading(false);
 
     if (result?.ok) {
-      await refresh();
-      const res = await fetch("/api/auth/session");
-      const session = await res.json();
-      const role = session?.user?.role;
-      router.push(role === "admin" ? "/admin/dashboard" : "/dealer/dashboard");
+      const updatedDealer = await refresh();
+      if (!updatedDealer) {
+        setError("Signed in, but couldn't load your account. Please try again.");
+        return;
+      }
+      router.push(updatedDealer.role === "admin" ? "/admin/dashboard" : "/dealer/dashboard");
     } else {
       setError("Invalid email or password. Please try again.");
     }

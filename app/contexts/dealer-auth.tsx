@@ -2,6 +2,7 @@
 
 import { createContext, useContext, ReactNode } from "react";
 import { useSession } from "next-auth/react";
+import type { Session } from "next-auth";
 
 type Dealer = {
   id: number;
@@ -22,38 +23,44 @@ type DealerAuthContextType = {
   dealer: Dealer | null;
   loading: boolean;
   isAdmin: boolean;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<Dealer | null>;
 };
 
 const DealerAuthContext = createContext<DealerAuthContextType>({
   dealer: null,
   loading: true,
   isAdmin: false,
-  refresh: async () => {},
+  refresh: async () => null,
 });
 
 export function DealerAuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status, update } = useSession();
 
-  const dealer: Dealer | null = session?.user
-    ? {
-        id: session.user.id,
-        name: session.user.name,
-        email: session.user.email,
-        image: session.user.image,
-        role: session.user.role,
-        status: session.user.status,
-        slug: session.user.slug,
-        shortName: session.user.shortName,
-        area: session.user.area ?? null,
-        phone: session.user.phone ?? null,
-        avatar: session.user.avatar ?? null,
-        provider: session.user.provider ?? undefined,
-      }
-    : null;
+  const toDealer = (user: Session["user"] | undefined): Dealer | null =>
+    user
+      ? {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          role: user.role,
+          status: user.status,
+          slug: user.slug,
+          shortName: user.shortName,
+          area: user.area ?? null,
+          phone: user.phone ?? null,
+          avatar: user.avatar ?? null,
+          provider: user.provider ?? undefined,
+        }
+      : null;
+
+  const dealer = toDealer(session?.user);
 
   const refresh = async () => {
-    await update(); // triggers JWT refresh → fetches latest DB data
+    // update() resolves with the freshly-fetched session — use it directly
+    // instead of issuing a second, racing fetch("/api/auth/session").
+    const updated = await update();
+    return toDealer(updated?.user);
   };
 
   return (
