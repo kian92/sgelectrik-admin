@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Tag, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Tag, CheckCircle2, ImagePlus, Loader2, X } from "lucide-react";
 import { Promotion, PromotionFormState } from "../lib/promotion";
 
 interface DealerOption {
@@ -83,6 +83,7 @@ export default function PromotionForm({
   });
   const [autoSlug, setAutoSlug] = useState(!isEditing);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const set = (k: keyof PromotionFormState, v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -145,6 +146,29 @@ export default function PromotionForm({
       description: form.description || null,
       status: form.status,
     };
+  }
+
+  async function handleImageUpload(file: File) {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("contentType", "general");
+
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error ?? "Failed to upload image");
+      }
+
+      set("image", json.url);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Something went wrong";
+      toast({ title: "Upload failed", description: message, variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   async function handleSubmit() {
@@ -378,13 +402,49 @@ export default function PromotionForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="image">Image URL</Label>
-              <Input
-                id="image"
-                value={form.image}
-                onChange={(e) => set("image", e.target.value)}
-                placeholder="https://sgelectrik-media.b-cdn.net/production/cars/gallery/model_3_1.jpg"
-              />
+              <Label htmlFor="image">Image</Label>
+              {form.image ? (
+                <div className="relative w-full max-w-xs">
+                  <img
+                    src={form.image}
+                    alt="Promotion"
+                    className="w-full aspect-video object-cover rounded-xl border border-slate-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => set("image", "")}
+                    className="absolute top-2 right-2 h-7 w-7 rounded-full bg-slate-900/70 text-white flex items-center justify-center hover:bg-slate-900"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <label
+                  htmlFor="image-upload"
+                  className="flex flex-col items-center justify-center gap-2 w-full max-w-xs aspect-video rounded-xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-emerald-300 hover:text-emerald-500 cursor-pointer transition"
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    <>
+                      <ImagePlus className="h-6 w-6" />
+                      <span className="text-xs font-medium">Click to upload image</span>
+                    </>
+                  )}
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={isUploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              )}
               <p className="text-xs text-slate-400">
                 Used as the card image on the public promotions page.
               </p>
