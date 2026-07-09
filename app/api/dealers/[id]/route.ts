@@ -17,7 +17,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Dealer not found" }, { status: 404 });
   }
 
-  return NextResponse.json(data);
+  return NextResponse.json({
+    ...data,
+    brands: data.brands ?? [],
+    car_ids: data.car_ids ?? [],
+  });
 }
 
 // PATCH /api/dealers/[id] — update dealer

@@ -13,8 +13,8 @@ interface DealerProfile {
   id: number;
   name: string;
   short_name: string;
-  brands: string[];
-  car_ids: string[];
+  brands: string[] | null;
+  car_ids: string[] | null;
   area: string | null;
   showrooms: number;
   slug: string;
@@ -94,7 +94,7 @@ export default function DealerDashboard() {
               <div>
                 <p className="font-semibold text-slate-900">{profile.name}</p>
                 <p className="text-sm text-slate-600">
-                  {profile.brands.join(", ")} · {profile.area} ·{" "}
+                  {(profile.brands ?? []).join(", ")} · {profile.area} ·{" "}
                   {profile.showrooms} showroom{profile.showrooms > 1 ? "s" : ""}
                 </p>
               </div>
@@ -116,7 +116,7 @@ export default function DealerDashboard() {
         {[
           {
             label: "Active Listings",
-            value: profile?.car_ids.length ?? 0,
+            value: profile?.car_ids?.length ?? 0,
             icon: Car,
             color: "text-blue-600",
             bg: "bg-blue-50",
@@ -165,7 +165,7 @@ export default function DealerDashboard() {
               <p className="text-slate-400 text-sm py-4 text-center">
                 Loading...
               </p>
-            ) : profile?.car_ids.length ? (
+            ) : profile?.car_ids?.length ? (
               <div className="space-y-2 mb-4">
                 {profile.car_ids.map((id) => (
                   <div
