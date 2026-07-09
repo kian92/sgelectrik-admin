@@ -139,8 +139,8 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       .eq("id", targetDealerId)
       .maybeSingle();
 
-    const existingIds: number[] = Array.isArray(newDealer?.car_ids)
-      ? newDealer.car_ids.map(Number)
+    const existingIds: string[] = Array.isArray(newDealer?.car_ids)
+      ? newDealer.car_ids.map(String)
       : [];
 
     if (!existingIds.includes(carId)) {
