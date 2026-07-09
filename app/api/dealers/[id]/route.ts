@@ -17,10 +17,21 @@ export async function GET(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Dealer not found" }, { status: 404 });
   }
 
+  const carIds: number[] = data.car_ids ?? [];
+  let cars: { id: number; name: string }[] = [];
+  if (carIds.length > 0) {
+    const { data: carsData } = await supabaseServer
+      .from("cars")
+      .select("id, name")
+      .in("id", carIds);
+    cars = carsData ?? [];
+  }
+
   return NextResponse.json({
     ...data,
     brands: data.brands ?? [],
-    car_ids: data.car_ids ?? [],
+    car_ids: carIds,
+    cars,
   });
 }
 

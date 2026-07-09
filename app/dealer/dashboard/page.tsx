@@ -9,15 +9,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Car, Users, FileText, Building2, ExternalLink } from "lucide-react";
 
+interface DealerCar {
+  id: number;
+  name: string;
+}
+
 interface DealerProfile {
   id: number;
   name: string;
   short_name: string;
   brands: string[] | null;
   car_ids: number[] | null;
+  cars: DealerCar[] | null;
   area: string | null;
   showrooms: number;
   slug: string;
+}
+
+function slugify(s: string) {
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 }
 
 export default function DealerDashboard() {
@@ -167,39 +181,38 @@ export default function DealerDashboard() {
               </p>
             ) : profile?.car_ids?.length ? (
               <div className="space-y-2 mb-4">
-                {profile.car_ids.map((id) => (
-                  <div
-                    key={id}
-                    className="flex items-center justify-between py-1.5 px-3 rounded-xl bg-slate-50"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Car className="h-4 w-4 text-slate-400" />
-                      <span className="text-sm font-medium text-slate-700">
-                        Car #{id}
-                      </span>
-                    </div>
-                    <Link
-                      href={`${process.env.NEXT_PUBLIC_URL}/cars/${id}`}
-                      className="text-xs text-emerald-600 hover:underline"
+                {profile.car_ids.map((id) => {
+                  const car = profile.cars?.find((c) => c.id === id);
+                  const publicHref = car
+                    ? `${process.env.NEXT_PUBLIC_URL}/cars/${id}/${slugify(car.name)}`
+                    : `${process.env.NEXT_PUBLIC_URL}/cars/${id}`;
+                  return (
+                    <div
+                      key={id}
+                      className="flex items-center justify-between py-1.5 px-3 rounded-xl bg-slate-50"
                     >
-                      View
-                    </Link>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-2">
+                        <Car className="h-4 w-4 text-slate-400" />
+                        <span className="text-sm font-medium text-slate-700">
+                          {car?.name ?? `Car #${id}`}
+                        </span>
+                      </div>
+                      <Link
+                        href={publicHref}
+                        target="_blank"
+                        className="text-xs text-emerald-600 hover:underline"
+                      >
+                        View
+                      </Link>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-slate-400 text-sm py-4 text-center">
                 No listings yet
               </p>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full gap-2"
-              disabled
-            >
-              <Car className="h-3.5 w-3.5" /> Add listing — coming soon
-            </Button>
           </CardContent>
         </Card>
 
