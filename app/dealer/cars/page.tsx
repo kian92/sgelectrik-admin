@@ -79,6 +79,7 @@ async function getDealerCars(
       { count: "exact" },
     )
     .in("id", numericIds)
+    .neq("status", "inactive")
     .order("created_at", { ascending: false })
     .range(from, to);
 

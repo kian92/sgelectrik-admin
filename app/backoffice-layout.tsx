@@ -9,7 +9,6 @@ import {
   BatteryCharging,
   LayoutDashboard,
   Users,
-  FileText,
   BookOpen,
   LogOut,
   Menu,
@@ -43,12 +42,11 @@ const ADMIN_NAV = [
 
 const DEALER_NAV = [
   { href: "/dealer/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dealer/listings", label: "My Listings", icon: FileText },
+  { href: "/dealer/cars", label: "My Cars", icon: Car },
   { href: "/dealer/rentals", label: "My Rentals", icon: Car },
   { href: "/dealer/leads", label: "My Leads", icon: Users },
   { href: "/dealer/workshops", label: "Workshops", icon: Wrench },
   { href: "/dealer/commercial-evs", label: "Commercial EVs", icon: Truck },
-  { href: "/dealer/cars", label: "My Cars", icon: Car },
 ];
 
 function Sidebar({

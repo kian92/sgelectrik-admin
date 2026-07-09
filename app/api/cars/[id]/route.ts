@@ -8,9 +8,8 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-function parseCarId(raw: string): number | null {
-  const id = Number(raw);
-  return Number.isInteger(id) && id > 0 ? id : null;
+function parseCarId(raw: string): string | null {
+  return raw?.trim() ? raw.trim() : null;
 }
 
 // ─── PATCH /api/cars/[id] ─────────────────────────────────────────────────────
@@ -170,30 +169,14 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: "Invalid car id" }, { status: 400 });
   }
 
-  const { error } = await supabaseServer.from("cars").delete().eq("id", carId);
+  const { error } = await supabaseServer
+    .from("cars")
+    .update({ status: "inactive", deleted_at: new Date().toISOString() })
+    .eq("id", carId);
 
   if (error) {
-    console.error("Delete car:", error.message);
+    console.error("Soft-delete car:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  const { data: dealers } = await supabaseServer
-    .from("dealers")
-    .select("id, car_ids")
-    .contains("car_ids", JSON.stringify([carId]));
-
-  if (dealers?.length) {
-    await Promise.all(
-      dealers.map((d) => {
-        const updated = (d.car_ids as number[])
-          .map(Number)
-          .filter((cid) => cid !== carId);
-        return supabaseServer
-          .from("dealers")
-          .update({ car_ids: updated })
-          .eq("id", d.id);
-      }),
-    );
   }
 
   return NextResponse.json({ success: true });

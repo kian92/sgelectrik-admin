@@ -52,6 +52,7 @@ async function getCars(): Promise<CarRow[]> {
     .select(
       "id, name, brand, model, car_type, condition, year, price_min, price_max, range_km, image_url, created_at, featured",
     )
+    .neq("status", "inactive")
     .order("created_at", { ascending: false });
 
   if (error) {

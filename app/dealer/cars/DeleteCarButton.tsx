@@ -60,8 +60,8 @@ export function DeleteCarButton({ carId, carName }: Props) {
         <AlertDialogHeader>
           <AlertDialogTitle>Delete &ldquo;{carName}&rdquo;?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently remove the listing. This action cannot be
-            undone.
+            This will hide the listing from the marketplace. It can be restored
+            from the database if needed.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
