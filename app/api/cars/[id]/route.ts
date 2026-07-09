@@ -124,9 +124,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       await Promise.all(
         currentDealers.map((dealer) => {
           if (dealer.id === targetDealerId) return Promise.resolve();
-          const updated = (dealer.car_ids as number[])
-            .map(Number)
-            .filter((cid) => cid !== carId);
+          const updated = (dealer.car_ids as string[]).filter((cid) => cid !== carId);
           return supabaseServer
             .from("dealers")
             .update({ car_ids: updated })
