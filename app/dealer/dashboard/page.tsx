@@ -114,7 +114,7 @@ export default function DealerDashboard() {
               </div>
             </div>
             <Link
-              href={`${process.env.NEXT_PUBLIC_URL}/dealers/${profile.id}`}
+              href={`${process.env.NEXT_PUBLIC_USER_URL}/dealers/${profile.id}`}
               target="_blank"
             >
               <Button variant="outline" size="sm" className="gap-2 bg-white">
@@ -184,8 +184,8 @@ export default function DealerDashboard() {
                 {profile.car_ids.map((id) => {
                   const car = profile.cars?.find((c) => c.id === id);
                   const publicHref = car
-                    ? `${process.env.NEXT_PUBLIC_URL}/cars/${id}/${slugify(car.name)}`
-                    : `${process.env.NEXT_PUBLIC_URL}/cars/${id}`;
+                    ? `${process.env.NEXT_PUBLIC_USER_URL}/cars/${id}/${slugify(car.name)}`
+                    : `${process.env.NEXT_PUBLIC_USER_URL}/cars/${id}`;
                   return (
                     <div
                       key={id}
