@@ -14,7 +14,7 @@ interface DealerProfile {
   name: string;
   short_name: string;
   brands: string[] | null;
-  car_ids: string[] | null;
+  car_ids: number[] | null;
   area: string | null;
   showrooms: number;
   slug: string;
@@ -174,8 +174,8 @@ export default function DealerDashboard() {
                   >
                     <div className="flex items-center gap-2">
                       <Car className="h-4 w-4 text-slate-400" />
-                      <span className="text-sm font-medium text-slate-700 capitalize">
-                        {id.replace(/-/g, " ")}
+                      <span className="text-sm font-medium text-slate-700">
+                        Car #{id}
                       </span>
                     </div>
                     <Link
