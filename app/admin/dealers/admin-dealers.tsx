@@ -636,7 +636,7 @@ export default function AdminDealersClient({
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Link
-                      href={`${process.env.NEXT_PUBLIC_URL}/dealers/${dealer.id}`}
+                      href={`${process.env.NEXT_PUBLIC_USER_URL}/dealers/${dealer.slug}`}
                       target="_blank"
                     >
                       <Button size="sm" variant="outline" className="gap-1.5">
