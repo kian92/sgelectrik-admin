@@ -22,6 +22,7 @@ import {
   Car,
   Truck,
   Tag,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "./lib/utils";
@@ -40,6 +41,7 @@ const ADMIN_NAV = [
   { href: "/admin/rentals", label: "EV Rentals", icon: Car },
   { href: "/admin/commercial-evs", label: "Commercial EVs", icon: Truck },
   { href: "/admin/promotions", label: "Promotions", icon: Tag },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 const DEALER_NAV = [
@@ -50,6 +52,7 @@ const DEALER_NAV = [
   { href: "/dealer/workshops", label: "Workshops", icon: Wrench },
   { href: "/dealer/commercial-evs", label: "Commercial EVs", icon: Truck },
   { href: "/dealer/promotions", label: "My Promotions", icon: Tag },
+  { href: "/dealer/settings", label: "Settings", icon: Settings },
 ];
 
 function Sidebar({

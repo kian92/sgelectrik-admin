@@ -114,7 +114,7 @@ export default function DealerDashboard() {
               </div>
             </div>
             <Link
-              href={`${process.env.NEXT_PUBLIC_USER_URL}/dealers/${profile.id}`}
+              href={`${process.env.NEXT_PUBLIC_USER_URL}/dealers/${profile.slug}`}
               target="_blank"
             >
               <Button variant="outline" size="sm" className="gap-2 bg-white">
