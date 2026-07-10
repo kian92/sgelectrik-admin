@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -13,12 +13,10 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
-import { useDealerAuth } from "@/app/contexts/dealer-auth";
 import Image from "next/image";
 
 export default function SignInPage() {
   const router = useRouter();
-  const { refresh } = useDealerAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,12 +40,13 @@ export default function SignInPage() {
     setLoading(false);
 
     if (result?.ok) {
-      const updatedDealer = await refresh();
-      if (!updatedDealer) {
+      const session = await getSession();
+      const role = session?.user?.role;
+      if (!role) {
         setError("Signed in, but couldn't load your account. Please try again.");
         return;
       }
-      router.push(updatedDealer.role === "admin" ? "/admin/dashboard" : "/dealer/dashboard");
+      router.push(role === "admin" ? "/admin/dashboard" : "/dealer/dashboard");
     } else {
       setError("Invalid email or password. Please try again.");
     }
