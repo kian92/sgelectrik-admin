@@ -57,6 +57,7 @@ function toRow(b: Record<string, unknown>) {
     charging_time_fast: b.chargingTimeFast ?? "",
     charging_time_slow: b.chargingTimeSlow ?? "",
     image_url: b.imageUrl ?? "",
+    gallery_images: Array.isArray(b.galleryImages) ? b.galleryImages : [],
     description: b.description ?? "",
     highlights: b.highlights ?? "[]",
     status: b.status ?? "active",

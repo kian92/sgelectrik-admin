@@ -14,8 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Truck, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Truck, CheckCircle2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUpload } from "@/components/FileUpload";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ interface ExistingEv {
   charging_time_fast?: string;
   charging_time_slow?: string;
   image_url?: string;
+  gallery_images?: string[] | string | null;
   description?: string;
   highlights?: string;
   status?: string;
@@ -87,6 +89,17 @@ function parseHighlights(raw?: string | null): string {
   }
 }
 
+function parseGalleryImages(raw?: string[] | string | null): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 function buildInitialForm(existing?: ExistingEv) {
   if (!existing) {
     return {
@@ -103,6 +116,7 @@ function buildInitialForm(existing?: ExistingEv) {
       chargingTimeFast: "",
       chargingTimeSlow: "",
       imageUrl: "",
+      galleryImages: [] as string[],
       description: "",
       highlights: "",
       status: "active",
@@ -125,6 +139,7 @@ function buildInitialForm(existing?: ExistingEv) {
     chargingTimeFast: existing.charging_time_fast ?? "",
     chargingTimeSlow: existing.charging_time_slow ?? "",
     imageUrl: existing.image_url ?? "",
+    galleryImages: parseGalleryImages(existing.gallery_images),
     description: existing.description ?? "",
     highlights: parseHighlights(existing.highlights),
     status: existing.status ?? "active",
@@ -153,8 +168,15 @@ export function CommercialEvForm({
   const [form, setForm] = useState(() => buildInitialForm(existing));
   const [autoSlug, setAutoSlug] = useState(!existing);
 
-  const set = (k: keyof typeof form, v: string) =>
+  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  function removeGalleryImage(index: number) {
+    setForm((f) => ({
+      ...f,
+      galleryImages: f.galleryImages.filter((_, i) => i !== index),
+    }));
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -194,6 +216,7 @@ export function CommercialEvForm({
       chargingTimeFast: form.chargingTimeFast,
       chargingTimeSlow: form.chargingTimeSlow,
       imageUrl: form.imageUrl,
+      galleryImages: form.galleryImages,
       description: form.description,
       highlights: JSON.stringify(highlightsArr),
       status: form.status,
@@ -465,12 +488,71 @@ export function CommercialEvForm({
             <CardTitle className="text-base">Content</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Image URL</Label>
-              <Input
-                value={form.imageUrl}
-                onChange={(e) => set("imageUrl", e.target.value)}
-                placeholder="https://..."
+            <div className="space-y-2">
+              <Label>Main image</Label>
+              {form.imageUrl ? (
+                <div className="relative rounded-xl overflow-hidden bg-slate-100 h-40 mb-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={form.imageUrl}
+                    alt="Main preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => set("imageUrl", "")}
+                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+                    aria-label="Remove main image"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : null}
+              <ImageUpload
+                contentType="vehicles"
+                onUploadComplete={(url) => set("imageUrl", url)}
+                label="Upload main image"
+                description="PNG, JPG, or WebP. Used as the primary listing photo."
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Gallery images</Label>
+              <p className="text-xs text-slate-400">
+                Add extra photos — upload one at a time.
+              </p>
+              {form.galleryImages.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
+                  {form.galleryImages.map((url, index) => (
+                    <div
+                      key={`${url}-${index}`}
+                      className="relative rounded-lg overflow-hidden bg-slate-100 aspect-video"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`Gallery ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeGalleryImage(index)}
+                        className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+                        aria-label={`Remove gallery image ${index + 1}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <ImageUpload
+                contentType="vehicles"
+                onUploadComplete={(url) =>
+                  set("galleryImages", [...form.galleryImages, url])
+                }
+                label="Add gallery image"
+                description="Upload additional photos for the commercial EV gallery."
               />
             </div>
             <div className="space-y-1.5">

@@ -80,6 +80,9 @@ function toRow(b: Record<string, unknown>) {
       charging_time_slow: b.chargingTimeSlow,
     }),
     ...(b.imageUrl !== undefined && { image_url: b.imageUrl }),
+    ...(b.galleryImages !== undefined && {
+      gallery_images: Array.isArray(b.galleryImages) ? b.galleryImages : [],
+    }),
     ...(b.description !== undefined && { description: b.description }),
     ...(b.highlights !== undefined && { highlights: b.highlights }),
     ...(b.status !== undefined && { status: b.status }),
