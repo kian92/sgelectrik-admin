@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,15 +25,14 @@ interface CommercialEv {
 interface Props {
   ev: CommercialEv;
   editHref: string;
+  onDeleted: (id: number) => void;
 }
 
 function fmt(n: number) {
   return n ? `S$${(n / 1000).toFixed(0)}k` : "—";
 }
 
-export function CommercialEvCard({ ev, editHref }: Props) {
-  console.log("EEEE", ev);
-  const router = useRouter();
+export function CommercialEvCard({ ev, editHref, onDeleted }: Props) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
@@ -49,7 +47,7 @@ export function CommercialEvCard({ ev, editHref }: Props) {
         return;
       }
       toast({ title: "Commercial EV deleted" });
-      router.refresh(); // re-run SSR data fetch on the list page
+      onDeleted(ev.id);
     });
   }
 

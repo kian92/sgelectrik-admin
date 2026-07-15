@@ -31,7 +31,7 @@ export default function DealerCommercialEvsClient({ initialEvs }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [evs] = useState(initialEvs);
+  const [evs, setEvs] = useState(initialEvs);
   const [page, setPage] = useState(
     Math.max(1, Number(searchParams.get("page") || 1)),
   );
@@ -43,6 +43,16 @@ export default function DealerCommercialEvsClient({ initialEvs }: Props) {
   const goToPage = (p: number) => {
     setPage(p);
     router.push(`?page=${p}`, { scroll: false });
+  };
+
+  const handleDeleted = (id: number) => {
+    const next = evs.filter((ev) => ev.id !== id);
+    const nextPage = Math.min(page, Math.max(1, Math.ceil(next.length / LIMIT)));
+    setEvs(next);
+    if (nextPage !== page) {
+      setPage(nextPage);
+      router.replace(`?page=${nextPage}`, { scroll: false });
+    }
   };
 
   return (
@@ -93,6 +103,7 @@ export default function DealerCommercialEvsClient({ initialEvs }: Props) {
                 key={ev.id}
                 ev={ev}
                 editHref={`/dealer/commercial-evs/edit/${ev.id}`}
+                onDeleted={handleDeleted}
               />
             ))}
           </div>

@@ -15,6 +15,7 @@ interface Account {
   email: string;
   role: "admin" | "dealer";
   phone: string | null;
+  whatsapp_number: string | null;
   area: string | null;
 }
 
@@ -29,6 +30,7 @@ export default function AccountSettingsForm({ showDealerFields }: Props) {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("+65 ");
   const [area, setArea] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
@@ -46,6 +48,7 @@ export default function AccountSettingsForm({ showDealerFields }: Props) {
           setAccount(data);
           setName(data.name ?? "");
           setPhone(data.phone ?? "");
+          setWhatsappNumber(data.whatsapp_number ?? "+65 ");
           setArea(data.area ?? "");
         }
       } finally {
@@ -62,6 +65,7 @@ export default function AccountSettingsForm({ showDealerFields }: Props) {
       const body: Record<string, string> = { name };
       if (showDealerFields) {
         body.phone = phone;
+        body.whatsappNumber = whatsappNumber;
         body.area = area;
       }
 
@@ -154,24 +158,41 @@ export default function AccountSettingsForm({ showDealerFields }: Props) {
           </div>
 
           {showDealerFields && (
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-1.5">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+65 xxxx xxxx"
-                />
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+65 6123 4567"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="area">Area</Label>
+                  <Input
+                    id="area"
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
+                    placeholder="East"
+                  />
+                </div>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="area">Area</Label>
+                <Label htmlFor="whatsappNumber">WhatsApp number</Label>
                 <Input
-                  id="area"
-                  value={area}
-                  onChange={(e) => setArea(e.target.value)}
-                  placeholder="East"
+                  id="whatsappNumber"
+                  type="tel"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  placeholder="+65 8123 4567"
                 />
+                <p className="text-xs text-slate-400">
+                  Include the country code. Consumer enquiries and test-drive
+                  requests can be sent to this number through WhatsApp.
+                </p>
               </div>
             </div>
           )}

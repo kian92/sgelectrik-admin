@@ -45,6 +45,16 @@ export default function AdminCommercialEvsClient({ initialEvs }: Props) {
     router.push(`?page=${p}`, { scroll: false });
   };
 
+  const handleDeleted = (id: number) => {
+    const next = evs.filter((ev) => ev.id !== id);
+    const nextPage = Math.min(page, Math.max(1, Math.ceil(next.length / LIMIT)));
+    setEvs(next);
+    if (nextPage !== page) {
+      setPage(nextPage);
+      router.replace(`?page=${nextPage}`, { scroll: false });
+    }
+  };
+
   return (
     <div className="max-w-screen-xl mx-auto">
       {/* Header */}
@@ -94,6 +104,7 @@ export default function AdminCommercialEvsClient({ initialEvs }: Props) {
                 key={ev.id}
                 ev={ev}
                 editHref={`/admin/commercial-evs/edit/${ev.id}`}
+                onDeleted={handleDeleted}
               />
             ))}
           </div>

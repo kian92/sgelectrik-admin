@@ -12,7 +12,7 @@ export async function GET() {
 
   const { data, error } = await supabaseServer
     .from("dealers")
-    .select("id, name, email, role, phone, area")
+    .select("id, name, email, role, phone, whatsapp_number, area")
     .eq("id", session.user.id)
     .single();
 
@@ -42,6 +42,17 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.phone === "string") {
     update.phone = body.phone.trim() || null;
   }
+  if (typeof body.whatsappNumber === "string") {
+    const whatsappNumber = body.whatsappNumber.trim();
+    const digits = whatsappNumber.replace(/\D/g, "");
+    if (whatsappNumber && (!whatsappNumber.startsWith("+") || digits.length < 8 || digits.length > 15)) {
+      return NextResponse.json(
+        { error: "WhatsApp number must include a valid country code, for example +65 8123 4567." },
+        { status: 400 },
+      );
+    }
+    update.whatsapp_number = whatsappNumber || null;
+  }
   if (typeof body.area === "string") {
     update.area = body.area.trim() || null;
   }
@@ -54,7 +65,7 @@ export async function PATCH(req: NextRequest) {
     .from("dealers")
     .update({ ...update, updated_at: new Date().toISOString() })
     .eq("id", session.user.id)
-    .select("id, name, email, role, phone, area")
+    .select("id, name, email, role, phone, whatsapp_number, area")
     .single();
 
   if (error || !data) {
