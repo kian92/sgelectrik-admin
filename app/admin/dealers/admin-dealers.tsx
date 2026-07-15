@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
   Loader2,
   EyeOff,
   Eye,
+  KeyRound,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -43,6 +44,7 @@ interface DealerDB {
   highlights: string[];
   certifications: string[];
   status: "active" | "inactive";
+  role: "admin" | "dealer";
   created_at: string;
   updated_at: string;
 }
@@ -446,6 +448,120 @@ function DealerModal({
   );
 }
 
+function PasswordModal({
+  dealer,
+  onClose,
+}: {
+  dealer: DealerDB;
+  onClose: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setError("");
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/dealers/${dealer.id}/password`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword: password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update password.");
+      setSaved(true);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-lg font-semibold text-slate-900">
+            Set Dealer Password
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded-lg hover:bg-slate-100 transition-colors"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5 text-slate-500" />
+          </button>
+        </div>
+        <p className="text-sm text-slate-500 mb-5">{dealer.name}</p>
+
+        {saved ? (
+          <>
+            <p className="text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-5">
+              Password updated successfully.
+            </p>
+            <div className="flex justify-end">
+              <Button onClick={onClose}>Done</Button>
+            </div>
+          </>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Field label="New Password *">
+              <input
+                className={inputCls}
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+            </Field>
+            <Field label="Confirm New Password *">
+              <input
+                className={inputCls}
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+            </Field>
+            {error && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
+            <div className="flex gap-3 justify-end pt-2">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving} className="gap-2">
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                Update Password
+              </Button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AdminDealersClient({
@@ -462,12 +578,9 @@ export default function AdminDealersClient({
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
   const [editing, setEditing] = useState<DealerDB | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<DealerDB | null>(null);
+  const [passwordDealer, setPasswordDealer] = useState<DealerDB | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<number | null>(null);
-
-  useEffect(() => {
-    setDealers(initialDealers);
-  }, [initialDealers]);
 
   const load = useCallback(async () => {
     try {
@@ -517,7 +630,6 @@ export default function AdminDealersClient({
     return matchArea && matchSearch;
   });
 
-  console.log("FFF", filtered);
   function openAdd() {
     setEditing(null);
     setModal("add");
@@ -651,6 +763,16 @@ export default function AdminDealersClient({
                     >
                       <Pencil className="h-3.5 w-3.5" /> Edit
                     </Button>
+                    {dealer.role === "dealer" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-slate-500 hover:text-slate-800 gap-1"
+                        onClick={() => setPasswordDealer(dealer)}
+                      >
+                        <KeyRound className="h-3.5 w-3.5" /> Password
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="ghost"
@@ -709,6 +831,13 @@ export default function AdminDealersClient({
           dealer={modal === "edit" ? editing : null}
           onClose={closeModal}
           onSaved={load}
+        />
+      )}
+
+      {passwordDealer && (
+        <PasswordModal
+          dealer={passwordDealer}
+          onClose={() => setPasswordDealer(null)}
         />
       )}
 

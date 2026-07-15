@@ -22,6 +22,7 @@ export default async function Page({
 
   return (
     <AdminDealersClient
+      key={page}
       initialDealers={data || []}
       total={count || 0}
       page={page}
