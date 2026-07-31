@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Truck, CheckCircle2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ImageUpload } from "@/components/FileUpload";
+import { FileUpload, ImageUpload } from "@/components/FileUpload";
 import { GalleryGrid } from "@/components/GalleryGrid";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -46,6 +46,7 @@ interface ExistingEv {
   charging_time_slow?: string;
   image_url?: string;
   gallery_images?: string[] | string | null;
+  brochure_url?: string | null;
   description?: string;
   highlights?: string;
   status?: string;
@@ -118,6 +119,7 @@ function buildInitialForm(existing?: ExistingEv) {
       chargingTimeSlow: "",
       imageUrl: "",
       galleryImages: [] as string[],
+      brochureUrl: "",
       description: "",
       highlights: "",
       status: "active",
@@ -141,6 +143,7 @@ function buildInitialForm(existing?: ExistingEv) {
     chargingTimeSlow: existing.charging_time_slow ?? "",
     imageUrl: existing.image_url ?? "",
     galleryImages: parseGalleryImages(existing.gallery_images),
+    brochureUrl: existing.brochure_url ?? "",
     description: existing.description ?? "",
     highlights: parseHighlights(existing.highlights),
     status: existing.status ?? "active",
@@ -218,6 +221,7 @@ export function CommercialEvForm({
       chargingTimeSlow: form.chargingTimeSlow,
       imageUrl: form.imageUrl,
       galleryImages: form.galleryImages,
+      brochureUrl: form.brochureUrl || null,
       description: form.description,
       highlights: JSON.stringify(highlightsArr),
       status: form.status,
@@ -536,6 +540,48 @@ export function CommercialEvForm({
                 description="Upload additional photos for the commercial EV gallery."
               />
             </div>
+
+            <div className="space-y-2">
+              <Label>Brochure (optional)</Label>
+              <p className="text-xs text-slate-400">
+                Upload a PDF brochure, or paste a link to one hosted elsewhere.
+              </p>
+              {form.brochureUrl ? (
+                <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                  <a
+                    href={form.brochureUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-600 hover:underline truncate"
+                  >
+                    {form.brochureUrl}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => set("brochureUrl", "")}
+                    className="text-slate-400 hover:text-slate-700 ml-2 shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <FileUpload
+                    contentType="vehicles"
+                    accept="application/pdf"
+                    onUploadComplete={(url) => set("brochureUrl", url)}
+                    label="Upload PDF brochure"
+                    description="PDF only, up to 500MB."
+                  />
+                  <Input
+                    value={form.brochureUrl}
+                    onChange={(e) => set("brochureUrl", e.target.value)}
+                    placeholder="Or paste a brochure URL"
+                  />
+                </>
+              )}
+            </div>
+
             <div className="space-y-1.5">
               <Label>Description</Label>
               <Textarea

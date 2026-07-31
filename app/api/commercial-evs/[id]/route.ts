@@ -83,6 +83,7 @@ function toRow(b: Record<string, unknown>) {
     ...(b.galleryImages !== undefined && {
       gallery_images: Array.isArray(b.galleryImages) ? b.galleryImages : [],
     }),
+    ...(b.brochureUrl !== undefined && { brochure_url: b.brochureUrl ?? null }),
     ...(b.description !== undefined && { description: b.description }),
     ...(b.highlights !== undefined && { highlights: b.highlights }),
     ...(b.status !== undefined && { status: b.status }),

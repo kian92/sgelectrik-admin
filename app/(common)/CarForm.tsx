@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowLeft, Car, CheckCircle2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ImageUpload } from "@/components/FileUpload";
+import { FileUpload, ImageUpload } from "@/components/FileUpload";
 import { GalleryGrid } from "@/components/GalleryGrid";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -52,6 +52,7 @@ interface ExistingCar {
   mileage?: number | null;
   image_url?: string;
   gallery_images?: string[] | string | null;
+  brochure_url?: string | null;
   dealer_id?: number | null;
   dealer_slug?: string | null;
 }
@@ -133,6 +134,7 @@ function buildInitialForm(existing?: ExistingCar) {
       monthlyEstimate: "",
       imageUrl: "",
       galleryImages: [] as string[],
+      brochureUrl: "",
       description: "",
       highlights: "",
       dealerKey: "",
@@ -164,6 +166,7 @@ function buildInitialForm(existing?: ExistingCar) {
         : "",
     imageUrl: existing.image_url ?? "",
     galleryImages: parseGalleryImages(existing.gallery_images),
+    brochureUrl: existing.brochure_url ?? "",
     description: existing.description ?? "",
     highlights: parseHighlights(existing.highlights),
     dealerKey:
@@ -241,6 +244,7 @@ export function CarForm({
       monthlyEstimate: parseInt(form.monthlyEstimate) || 0,
       imageUrl: form.imageUrl,
       galleryImages: form.galleryImages,
+      brochureUrl: form.brochureUrl || null,
       description: form.description,
       highlights: JSON.stringify(highlightsArr),
       dealerId: resolvedDealerId,
@@ -638,6 +642,47 @@ export function CarForm({
                 label="Add gallery image"
                 description="Upload additional photos for the car gallery."
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Brochure (optional)</Label>
+              <p className="text-xs text-slate-400">
+                Upload a PDF brochure, or paste a link to one hosted elsewhere.
+              </p>
+              {form.brochureUrl ? (
+                <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
+                  <a
+                    href={form.brochureUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-600 hover:underline truncate"
+                  >
+                    {form.brochureUrl}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => set("brochureUrl", "")}
+                    className="text-slate-400 hover:text-slate-700 ml-2 shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <FileUpload
+                    contentType="vehicles"
+                    accept="application/pdf"
+                    onUploadComplete={(url) => set("brochureUrl", url)}
+                    label="Upload PDF brochure"
+                    description="PDF only, up to 500MB."
+                  />
+                  <Input
+                    value={form.brochureUrl}
+                    onChange={(e) => set("brochureUrl", e.target.value)}
+                    placeholder="Or paste a brochure URL"
+                  />
+                </>
+              )}
             </div>
 
             <div className="space-y-1.5">

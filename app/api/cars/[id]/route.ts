@@ -48,6 +48,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     monthlyEstimate,
     imageUrl,
     galleryImages,
+    brochureUrl,
     description,
     highlights,
     featured,
@@ -91,6 +92,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       ? galleryImages
       : [];
   }
+  if (brochureUrl !== undefined) updatePayload.brochure_url = brochureUrl ?? null;
   if (description !== undefined) updatePayload.description = description;
   if (highlights !== undefined) updatePayload.highlights = highlights;
   if (featured !== undefined) updatePayload.featured = featured;

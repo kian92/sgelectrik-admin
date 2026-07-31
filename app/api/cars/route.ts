@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
     monthlyEstimate,
     imageUrl,
     galleryImages,
+    brochureUrl,
     description,
     highlights,
     dealerId,
@@ -98,6 +99,7 @@ export async function POST(req: NextRequest) {
       monthly_estimate: monthlyEstimate ?? 0,
       image_url: imageUrl ?? "",
       gallery_images: gallery,
+      brochure_url: brochureUrl ?? null,
       description: description ?? "",
       highlights: highlights ?? "[]",
     })

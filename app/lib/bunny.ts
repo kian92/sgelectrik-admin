@@ -38,7 +38,13 @@ const SUPPORTED_IMAGE_TYPES = [
 
 const SUPPORTED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/mpeg"];
 
-const SUPPORTED_TYPES = [...SUPPORTED_IMAGE_TYPES, ...SUPPORTED_VIDEO_TYPES];
+const SUPPORTED_DOCUMENT_TYPES = ["application/pdf"];
+
+const SUPPORTED_TYPES = [
+  ...SUPPORTED_IMAGE_TYPES,
+  ...SUPPORTED_VIDEO_TYPES,
+  ...SUPPORTED_DOCUMENT_TYPES,
+];
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -62,6 +68,8 @@ function getFolderPath(
     mediaType = "images";
   } else if (SUPPORTED_VIDEO_TYPES.includes(mimeType)) {
     mediaType = "videos";
+  } else if (SUPPORTED_DOCUMENT_TYPES.includes(mimeType)) {
+    mediaType = "documents";
   }
 
   // Build hierarchical path: environment/mediaType/contentType
