@@ -44,19 +44,25 @@ async function getAssignedDealer(id: string) {
   const carId = Number(id);
   if (!Number.isInteger(carId)) return null;
 
+  // car_ids is stored as an array of strings, but Postgres JSONB containment
+  // (.contains) is type-sensitive — a numeric probe like [5] never matches
+  // a stored ["5"]. Fetch and compare with type coercion instead.
   const { data, error } = await supabaseServer
     .from("dealers")
-    .select("id, slug, name")
-    .contains("car_ids", JSON.stringify([carId]))
-    .limit(1)
-    .maybeSingle();
+    .select("id, slug, name, car_ids");
 
   if (error) {
     console.error("getAssignedDealer:", error.message);
     return null;
   }
 
-  return data;
+  const match = (data ?? []).find(
+    (dealer) =>
+      Array.isArray(dealer.car_ids) &&
+      dealer.car_ids.map(Number).includes(carId),
+  );
+
+  return match ? { id: match.id, slug: match.slug, name: match.name } : null;
 }
 
 export default async function AdminEditCarPage({ params }: Props) {
