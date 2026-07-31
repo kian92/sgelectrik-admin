@@ -169,6 +169,89 @@ export async function uploadToBunny(
 }
 
 /**
+ * Upload a raw buffer to an exact Bunny.net storage path (no folder/filename
+ * generation). Used for staging temporary chunk parts during chunked uploads.
+ */
+export async function putRawToBunny(
+  storagePath: string,
+  buffer: Buffer,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!BUNNY_API_KEY || !BUNNY_STORAGE_ZONE || !BUNNY_STORAGE_ENDPOINT) {
+      throw new Error(
+        "Bunny.net credentials not configured in environment variables",
+      );
+    }
+
+    const arrayBuffer = buffer.buffer.slice(
+      buffer.byteOffset,
+      buffer.byteOffset + buffer.byteLength,
+    );
+    const blob = new Blob([arrayBuffer as ArrayBuffer]);
+
+    const response = await fetch(
+      `https://${BUNNY_STORAGE_ENDPOINT}/${BUNNY_STORAGE_ZONE}/${storagePath}`,
+      {
+        method: "PUT",
+        headers: { AccessKey: BUNNY_API_KEY },
+        body: blob,
+      },
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Bunny.net chunk upload failed: ${response.status} - ${errorText}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Bunny.net chunk upload error:", errorMessage);
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * Fetch a raw buffer from an exact Bunny.net storage path.
+ */
+export async function getRawFromBunny(storagePath: string): Promise<Buffer> {
+  if (!BUNNY_API_KEY || !BUNNY_STORAGE_ZONE || !BUNNY_STORAGE_ENDPOINT) {
+    throw new Error(
+      "Bunny.net credentials not configured in environment variables",
+    );
+  }
+
+  const response = await fetch(
+    `https://${BUNNY_STORAGE_ENDPOINT}/${BUNNY_STORAGE_ZONE}/${storagePath}`,
+    {
+      method: "GET",
+      headers: { AccessKey: BUNNY_API_KEY },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Bunny.net chunk fetch failed: ${response.status}`);
+  }
+
+  return Buffer.from(await response.arrayBuffer());
+}
+
+/**
+ * Delete a raw Bunny.net storage path, ignoring failures (best-effort cleanup).
+ */
+export async function deleteRawFromBunny(storagePath: string): Promise<void> {
+  if (!BUNNY_API_KEY || !BUNNY_STORAGE_ZONE || !BUNNY_STORAGE_ENDPOINT) return;
+  try {
+    await fetch(
+      `https://${BUNNY_STORAGE_ENDPOINT}/${BUNNY_STORAGE_ZONE}/${storagePath}`,
+      { method: "DELETE", headers: { AccessKey: BUNNY_API_KEY } },
+    );
+  } catch (error) {
+    console.error("Bunny.net chunk cleanup error:", error);
+  }
+}
+
+/**
  * Delete file from Bunny.net storage
  */
 export async function deleteFromBunny(filePath: string): Promise<boolean> {

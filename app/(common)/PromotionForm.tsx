@@ -149,20 +149,64 @@ export default function PromotionForm({
   }
 
   async function handleImageUpload(file: File) {
+    const MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_UPLOAD_SIZE) {
+      toast({
+        title: "File too large",
+        description: `Max upload size is 10MB (this file is ${(file.size / 1024 / 1024).toFixed(1)}MB).`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("contentType", "general");
+      // Vercel serverless functions cap request bodies at ~4.5MB, so files
+      // above that are split into chunks and uploaded sequentially.
+      const CHUNK_SIZE = 3 * 1024 * 1024; // 3MB, leaves headroom for multipart overhead
+      const DIRECT_UPLOAD_LIMIT = 4 * 1024 * 1024; // 4MB
 
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const json = await res.json();
+      let json: { success: boolean; url?: string; error?: string };
 
-      if (!res.ok || !json.success) {
-        throw new Error(json.error ?? "Failed to upload image");
+      if (file.size <= DIRECT_UPLOAD_LIMIT) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("contentType", "general");
+
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        json = await res.json();
+        if (!res.ok || !json.success) {
+          throw new Error(json.error ?? "Failed to upload image");
+        }
+      } else {
+        const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+        for (let i = 0; i < totalChunks; i++) {
+          const chunk = file.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+          const formData = new FormData();
+          formData.append("file", chunk, file.name);
+          formData.append("contentType", "general");
+          formData.append("uploadId", uploadId);
+          formData.append("chunkIndex", String(i));
+          formData.append("totalChunks", String(totalChunks));
+          formData.append("fileName", file.name);
+          formData.append("mimeType", file.type);
+          formData.append("totalSize", String(file.size));
+
+          const res = await fetch("/api/upload", { method: "POST", body: formData });
+          json = await res.json();
+          if (!res.ok || !json.success) {
+            throw new Error(json.error ?? `Failed to upload chunk ${i + 1}/${totalChunks}`);
+          }
+        }
       }
 
-      set("image", json.url);
+      if (!json!.url) {
+        throw new Error("Upload did not return a file URL");
+      }
+
+      set("image", json!.url);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Something went wrong";
       toast({ title: "Upload failed", description: message, variant: "destructive" });
