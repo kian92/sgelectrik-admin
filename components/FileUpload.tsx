@@ -72,22 +72,62 @@ export function FileUpload({
 
       setState({ isLoading: true, error: null, success: false });
 
-      const formData = new FormData();
-      formData.append("file", file);
-      if (contentType) {
-        formData.append("contentType", contentType);
-      }
+      // Vercel serverless functions cap request bodies at ~4.5MB, so files
+      // above that are split into chunks and uploaded sequentially.
+      const CHUNK_SIZE = 3 * 1024 * 1024; // 3MB, leaves headroom for multipart overhead
+      const DIRECT_UPLOAD_LIMIT = 4 * 1024 * 1024; // 4MB
 
       try {
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
+        let data: { success: boolean; url?: string; path?: string; error?: string };
 
-        const data = await response.json();
+        if (file.size <= DIRECT_UPLOAD_LIMIT) {
+          const formData = new FormData();
+          formData.append("file", file);
+          if (contentType) {
+            formData.append("contentType", contentType);
+          }
 
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || "Upload failed");
+          const response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+          data = await response.json();
+          if (!response.ok || !data.success) {
+            throw new Error(data.error || "Upload failed");
+          }
+        } else {
+          const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+          for (let i = 0; i < totalChunks; i++) {
+            const chunk = file.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+            const formData = new FormData();
+            formData.append("file", chunk, file.name);
+            if (contentType) {
+              formData.append("contentType", contentType);
+            }
+            formData.append("uploadId", uploadId);
+            formData.append("chunkIndex", String(i));
+            formData.append("totalChunks", String(totalChunks));
+            formData.append("fileName", file.name);
+            formData.append("mimeType", file.type);
+            formData.append("totalSize", String(file.size));
+
+            setState({ isLoading: true, error: null, success: false, progress: Math.round(((i + 1) / totalChunks) * 100) });
+
+            const response = await fetch("/api/upload", {
+              method: "POST",
+              body: formData,
+            });
+            data = await response.json();
+            if (!response.ok || !data.success) {
+              throw new Error(data.error || `Failed to upload chunk ${i + 1}/${totalChunks}`);
+            }
+          }
+        }
+
+        if (!data!.url || !data!.path) {
+          throw new Error("Upload did not return a file URL");
         }
 
         setState({
@@ -96,7 +136,7 @@ export function FileUpload({
           success: true,
         });
 
-        onUploadComplete(data.url, data.path);
+        onUploadComplete(data!.url, data!.path);
 
         // Reset success state after 3 seconds
         setTimeout(() => {
