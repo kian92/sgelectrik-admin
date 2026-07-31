@@ -177,5 +177,31 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  const { data: ownerDealers, error: ownerLookupError } = await supabaseServer
+    .from("dealers")
+    .select("id, car_ids")
+    .contains("car_ids", JSON.stringify([carId]));
+
+  if (ownerLookupError) {
+    console.error(
+      "Lookup dealers for car cleanup:",
+      ownerLookupError.message,
+    );
+  }
+
+  if (ownerDealers?.length) {
+    await Promise.all(
+      ownerDealers.map((dealer) => {
+        const updated = (dealer.car_ids as string[]).filter(
+          (cid) => cid !== carId,
+        );
+        return supabaseServer
+          .from("dealers")
+          .update({ car_ids: updated })
+          .eq("id", dealer.id);
+      }),
+    );
+  }
+
   return NextResponse.json({ success: true });
 }

@@ -185,7 +185,7 @@ export default function DealerDashboard() {
                   const car = profile.cars?.find((c) => c.id === id);
                   const publicHref = car
                     ? `${process.env.NEXT_PUBLIC_USER_URL}/cars/${id}/${slugify(car.name)}`
-                    : `${process.env.NEXT_PUBLIC_USER_URL}/cars/${id}`;
+                    : null;
                   return (
                     <div
                       key={id}
@@ -197,13 +197,17 @@ export default function DealerDashboard() {
                           {car?.name ?? `Car #${id}`}
                         </span>
                       </div>
-                      <Link
-                        href={publicHref}
-                        target="_blank"
-                        className="text-xs text-emerald-600 hover:underline"
-                      >
-                        View
-                      </Link>
+                      {publicHref ? (
+                        <Link
+                          href={publicHref}
+                          target="_blank"
+                          className="text-xs text-emerald-600 hover:underline"
+                        >
+                          View
+                        </Link>
+                      ) : (
+                        <span className="text-xs text-slate-300">Unavailable</span>
+                      )}
                     </div>
                   );
                 })}
