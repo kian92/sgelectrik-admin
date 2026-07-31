@@ -47,6 +47,7 @@ const SUPPORTED_TYPES = [
 ];
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_DOCUMENT_SIZE = 100 * 1024 * 1024; // 100MB
 
 /**
  * Generate a unique filename for storage
@@ -90,10 +91,14 @@ export function validateFile(
     };
   }
 
-  if (fileSize > MAX_FILE_SIZE) {
+  const maxSize = SUPPORTED_DOCUMENT_TYPES.includes(mimeType)
+    ? MAX_DOCUMENT_SIZE
+    : MAX_FILE_SIZE;
+
+  if (fileSize > maxSize) {
     return {
       valid: false,
-      error: `File size ${(fileSize / 1024 / 1024).toFixed(2)}MB exceeds maximum of 500MB`,
+      error: `File size ${(fileSize / 1024 / 1024).toFixed(2)}MB exceeds maximum of ${maxSize / 1024 / 1024}MB`,
     };
   }
 

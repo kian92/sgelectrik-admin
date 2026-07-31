@@ -569,9 +569,10 @@ export function CommercialEvForm({
                   <FileUpload
                     contentType="vehicles"
                     accept="application/pdf"
+                    maxSize={100 * 1024 * 1024}
                     onUploadComplete={(url) => set("brochureUrl", url)}
                     label="Upload PDF brochure"
-                    description="PDF only, up to 500MB."
+                    description="PDF only, up to 100MB."
                   />
                   <Input
                     value={form.brochureUrl}
