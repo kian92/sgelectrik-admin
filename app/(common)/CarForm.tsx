@@ -18,6 +18,7 @@ import {
 import { ArrowLeft, Car, CheckCircle2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/FileUpload";
+import { GalleryGrid } from "@/components/GalleryGrid";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -622,32 +623,13 @@ export function CarForm({
             <div className="space-y-2">
               <Label>Gallery images</Label>
               <p className="text-xs text-slate-400">
-                Add extra photos — upload one at a time.
+                Add extra photos — drag to reorder.
               </p>
-              {form.galleryImages.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
-                  {form.galleryImages.map((url, index) => (
-                    <div
-                      key={`${url}-${index}`}
-                      className="relative rounded-lg overflow-hidden bg-slate-100 aspect-video"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={url}
-                        alt={`Gallery ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeGalleryImage(index)}
-                        className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <GalleryGrid
+                images={form.galleryImages}
+                onReorder={(images) => set("galleryImages", images)}
+                onRemove={removeGalleryImage}
+              />
               <ImageUpload
                 contentType="vehicles"
                 onUploadComplete={(url) =>
