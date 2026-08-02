@@ -135,7 +135,7 @@ export async function uploadToBunny(
       return { success: false, error: validation.error };
     }
 
-    let uploadBuffer = Buffer.from(file);
+    let uploadBuffer: Buffer<ArrayBufferLike> = Buffer.from(file);
     let uploadName = originalFileName;
     let uploadMimeType = mimeType;
 
