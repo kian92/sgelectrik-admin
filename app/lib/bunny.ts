@@ -48,6 +48,8 @@ const SUPPORTED_TYPES = [
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const MAX_DOCUMENT_SIZE = 100 * 1024 * 1024; // 100MB
+const OPTIMIZABLE_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_IMAGE_DIMENSION = 1920;
 
 /**
  * Generate a unique filename for storage
@@ -133,18 +135,40 @@ export async function uploadToBunny(
       return { success: false, error: validation.error };
     }
 
+    let uploadBuffer = Buffer.from(file);
+    let uploadName = originalFileName;
+    let uploadMimeType = mimeType;
+
+    // Normalize raster uploads so multi-megapixel originals do not reach the
+    // consumer site. rotate() applies EXIF orientation and WebP removes EXIF.
+    if (OPTIMIZABLE_IMAGE_TYPES.includes(mimeType)) {
+      uploadBuffer = await sharp(uploadBuffer, { sequentialRead: true })
+        .rotate()
+        .resize({
+          width: MAX_IMAGE_DIMENSION,
+          height: MAX_IMAGE_DIMENSION,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 82, effort: 4 })
+        .toBuffer();
+      uploadName = originalFileName.replace(/\.[^.]+$/, "") + ".webp";
+      uploadMimeType = "image/webp";
+    }
+
     // Generate filename and path
-    const fileName = generateFileName(originalFileName);
-    const folderPath = getFolderPath(mimeType, contentType);
+    const fileName = generateFileName(uploadName);
+    const folderPath = getFolderPath(uploadMimeType, contentType);
     const storagePath = `/${BUNNY_STORAGE_ZONE}/${folderPath}/${fileName}`; // ← ADD
     const cdnUrl = `https://${BUNNY_CDN_HOST}/${folderPath}/${fileName}`; // ← ADD
 
     // Convert buffer to ArrayBuffer for Blob
-    const arrayBuffer = Buffer.isBuffer(file)
-      ? file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength)
-      : file.buffer;
+    const arrayBuffer = uploadBuffer.buffer.slice(
+      uploadBuffer.byteOffset,
+      uploadBuffer.byteOffset + uploadBuffer.byteLength,
+    );
 
-    const blob = new Blob([arrayBuffer as ArrayBuffer], { type: mimeType });
+    const blob = new Blob([arrayBuffer as ArrayBuffer], { type: uploadMimeType });
 
     // Upload to Bunny.net storage
     const response = await fetch(
@@ -153,7 +177,7 @@ export async function uploadToBunny(
         method: "PUT",
         headers: {
           AccessKey: BUNNY_API_KEY,
-          "Content-Type": mimeType,
+          "Content-Type": uploadMimeType,
         },
         body: blob,
       },
@@ -332,3 +356,4 @@ export const BUNNY_CONFIG = {
   IS_CONFIGURED:
     !!BUNNY_API_KEY && !!BUNNY_STORAGE_ZONE && !!BUNNY_STORAGE_ENDPOINT,
 };
+import sharp from "sharp";
