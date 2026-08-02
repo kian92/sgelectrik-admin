@@ -27,11 +27,18 @@ export async function GET(_req: NextRequest, { params }: Params) {
     cars = carsData ?? [];
   }
 
+  const { data: commercialEvsData } = await supabaseServer
+    .from("commercial_evs")
+    .select("id, name")
+    .eq("dealer_id", id);
+  const commercialEvs = commercialEvsData ?? [];
+
   return NextResponse.json({
     ...data,
     brands: data.brands ?? [],
     car_ids: carIds,
     cars,
+    commercial_evs: commercialEvs,
   });
 }
 

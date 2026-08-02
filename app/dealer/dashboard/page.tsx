@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useDealerAuth } from "@/app/contexts/dealer-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Car, Users, FileText, Building2, ExternalLink } from "lucide-react";
+import { Car, Users, FileText, Building2, ExternalLink, MessageCircle, Truck } from "lucide-react";
 
 interface DealerCar {
   id: number;
@@ -21,9 +21,25 @@ interface DealerProfile {
   brands: string[] | null;
   car_ids: number[] | null;
   cars: DealerCar[] | null;
+  commercial_evs: DealerCar[] | null;
   area: string | null;
   showrooms: number;
   slug: string;
+}
+
+interface DealerAnalytics {
+  windowDays: number;
+  car_view: number;
+  car_favorited: number;
+  whatsapp_click: number;
+  get_deal_click: number;
+}
+
+interface RecentLead {
+  id: number;
+  name: string;
+  preferred_car: string;
+  created_at: string;
 }
 
 function slugify(s: string) {
@@ -40,6 +56,9 @@ export default function DealerDashboard() {
   const { dealer, loading: dealerLoading } = useDealerAuth();
   const [profile, setProfile] = useState<DealerProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<DealerAnalytics | null>(null);
+  const [recentLeads, setRecentLeads] = useState<RecentLead[] | null>(null);
+  const [leadsThisMonth, setLeadsThisMonth] = useState<number | null>(null);
 
   // Check authentication
   useEffect(() => {
@@ -53,10 +72,17 @@ export default function DealerDashboard() {
 
     async function load() {
       try {
-        const res = await fetch(`/api/dealers/${dealer!.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setProfile(data);
+        const [profileRes, analyticsRes, leadsRes] = await Promise.all([
+          fetch(`/api/dealers/${dealer!.id}`),
+          fetch(`/api/dealers/${dealer!.id}/analytics`),
+          fetch(`/api/dealers/${dealer!.id}/leads?limit=5`),
+        ]);
+        if (profileRes.ok) setProfile(await profileRes.json());
+        if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
+        if (leadsRes.ok) {
+          const leadsData = await leadsRes.json();
+          setRecentLeads(leadsData.leads);
+          setLeadsThisMonth(leadsData.countThisMonth);
         }
       } catch (e) {
         console.error(e);
@@ -126,30 +152,50 @@ export default function DealerDashboard() {
       )}
 
       {/* Stat cards */}
-      <div className="grid sm:grid-cols-3 gap-4 mb-8">
+      <p className="text-xs text-slate-400 mb-2">
+        Leads this month · Profile views, WhatsApp clicks and favorites are from the last {analytics?.windowDays ?? 30} days
+      </p>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {[
           {
             label: "Active Listings",
-            value: profile?.car_ids?.length ?? 0,
+            value: (profile?.car_ids?.length ?? 0) + (profile?.commercial_evs?.length ?? 0),
+            caption: profile
+              ? `${profile.car_ids?.length ?? 0} cars · ${profile.commercial_evs?.length ?? 0} commercial EVs`
+              : undefined,
             icon: Car,
             color: "text-blue-600",
             bg: "bg-blue-50",
           },
           {
             label: "Leads this month",
-            value: "—",
+            value: leadsThisMonth ?? "—",
             icon: Users,
             color: "text-violet-600",
             bg: "bg-violet-50",
           },
           {
             label: "Profile views",
-            value: "—",
+            value: analytics?.car_view ?? "—",
             icon: FileText,
             color: "text-amber-600",
             bg: "bg-amber-50",
           },
-        ].map(({ label, value, icon: Icon, color, bg }) => (
+          {
+            label: "WhatsApp clicks",
+            value: analytics?.whatsapp_click ?? "—",
+            icon: MessageCircle,
+            color: "text-emerald-600",
+            bg: "bg-emerald-50",
+          },
+          {
+            label: "Favorited",
+            value: analytics?.car_favorited ?? "—",
+            icon: Users,
+            color: "text-rose-600",
+            bg: "bg-rose-50",
+          },
+        ].map(({ label, value, caption, icon: Icon, color, bg }) => (
           <Card key={label} className="border-0 shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
@@ -161,6 +207,9 @@ export default function DealerDashboard() {
                 </div>
               </div>
               <div className="text-3xl font-bold text-slate-900">{value}</div>
+              {caption && (
+                <p className="text-xs text-slate-400 mt-1">{caption}</p>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -179,16 +228,16 @@ export default function DealerDashboard() {
               <p className="text-slate-400 text-sm py-4 text-center">
                 Loading...
               </p>
-            ) : profile?.car_ids?.length ? (
+            ) : (profile?.car_ids?.length || profile?.commercial_evs?.length) ? (
               <div className="space-y-2 mb-4">
-                {profile.car_ids.map((id) => {
+                {(profile.car_ids ?? []).map((id) => {
                   const car = profile.cars?.find((c) => c.id === id);
                   const publicHref = car
                     ? `${process.env.NEXT_PUBLIC_USER_URL}/cars/${id}/${slugify(car.name)}`
                     : null;
                   return (
                     <div
-                      key={id}
+                      key={`car-${id}`}
                       className="flex items-center justify-between py-1.5 px-3 rounded-xl bg-slate-50"
                     >
                       <div className="flex items-center gap-2">
@@ -211,6 +260,32 @@ export default function DealerDashboard() {
                     </div>
                   );
                 })}
+                {(profile.commercial_evs ?? []).map((ev) => {
+                  const publicHref = `${process.env.NEXT_PUBLIC_USER_URL}/commercial-evs/${ev.id}/${slugify(ev.name)}`;
+                  return (
+                    <div
+                      key={`ev-${ev.id}`}
+                      className="flex items-center justify-between py-1.5 px-3 rounded-xl bg-slate-50"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-slate-400" />
+                        <span className="text-sm font-medium text-slate-700">
+                          {ev.name}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wide text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                          Commercial
+                        </span>
+                      </div>
+                      <Link
+                        href={publicHref}
+                        target="_blank"
+                        className="text-xs text-emerald-600 hover:underline"
+                      >
+                        View
+                      </Link>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-slate-400 text-sm py-4 text-center">
@@ -221,19 +296,47 @@ export default function DealerDashboard() {
         </Card>
 
         <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-base font-semibold">
               Recent Leads
             </CardTitle>
+            <Link href="/dealer/leads" className="text-xs text-emerald-600 hover:underline">
+              View all
+            </Link>
           </CardHeader>
           <CardContent>
-            <div className="py-8 text-center text-slate-400">
-              <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Lead management coming soon</p>
-              <p className="text-xs mt-1">
-                You'll be able to view and respond to leads here
+            {loading ? (
+              <p className="text-slate-400 text-sm py-4 text-center">
+                Loading...
               </p>
-            </div>
+            ) : recentLeads?.length ? (
+              <div className="space-y-2">
+                {recentLeads.map((lead) => (
+                  <div
+                    key={lead.id}
+                    className="flex items-center justify-between py-1.5 px-3 rounded-xl bg-slate-50"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Users className="h-4 w-4 text-slate-400 shrink-0" />
+                      <span className="text-sm font-medium text-slate-700 truncate">
+                        {lead.name}
+                      </span>
+                      <span className="text-xs text-slate-400 truncate">
+                        · {lead.preferred_car}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-slate-400">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No leads yet</p>
+                <p className="text-xs mt-1">
+                  New leads for your listings will show up here
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -7,20 +7,20 @@ import DealerCommercialEvsClient from "./DealerCommercialEvsClient";
 
 export const dynamic = "force-dynamic";
 
-async function getDealerIdByEmail(email: string): Promise<number | null> {
+async function getDealer(email: string): Promise<{ id: number; car_ids: number[] | null } | null> {
   const { data, error } = await supabaseServer
     .from("dealers")
-    .select("id")
+    .select("id, car_ids")
     .eq("email", email)
     .eq("role", "dealer")
     .maybeSingle();
 
   if (error) {
-    console.error("getDealerIdByEmail:", error.message);
+    console.error("getDealer:", error.message);
     return null;
   }
 
-  return data?.id ?? null;
+  return data ?? null;
 }
 
 async function getEvs(dealerId: number) {
@@ -52,10 +52,11 @@ export default async function DealerCommercialEvsPage() {
 
   if (!session?.user?.email) redirect("/backoffice-login");
 
-  const dealerId = await getDealerIdByEmail(session.user.email);
-  if (!dealerId) redirect("/backoffice-login");
+  const dealer = await getDealer(session.user.email);
+  if (!dealer) redirect("/backoffice-login");
 
-  const evs = await getEvs(dealerId);
+  const evs = await getEvs(dealer.id);
+  const carCount = Array.isArray(dealer.car_ids) ? dealer.car_ids.length : 0;
 
-  return <DealerCommercialEvsClient initialEvs={evs} />;
+  return <DealerCommercialEvsClient initialEvs={evs} carCount={carCount} />;
 }

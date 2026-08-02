@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "./lib/utils";
 import Image from "next/image";
+import { ListingTypeChooser } from "./dealer/ListingTypeChooser";
 
 const ADMIN_NAV = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -46,7 +47,7 @@ const ADMIN_NAV = [
 
 const DEALER_NAV = [
   { href: "/dealer/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dealer/cars", label: "My Cars", icon: Car },
+  { href: "/dealer/cars", label: "My Cars", icon: Car, chooser: true },
   { href: "/dealer/rentals", label: "My Rentals", icon: Car },
   { href: "/dealer/leads", label: "My Leads", icon: Users },
   { href: "/dealer/workshops", label: "Workshops", icon: Wrench },
@@ -64,7 +65,13 @@ function Sidebar({
 }) {
   const { dealer, isAdmin } = useDealerAuth();
   const pathname = usePathname();
-  const nav = isAdmin ? ADMIN_NAV : DEALER_NAV;
+  const nav: {
+    href: string;
+    label: string;
+    icon: typeof Car;
+    chooser?: boolean;
+  }[] = isAdmin ? ADMIN_NAV : DEALER_NAV;
+  const [chooserOpen, setChooserOpen] = useState(false);
 
   return (
     <div
@@ -130,20 +137,36 @@ function Sidebar({
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {nav.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(href + "/");
+        {nav.map(({ href, label, icon: Icon, chooser }) => {
+          const active = chooser
+            ? pathname.startsWith("/dealer/cars") || pathname.startsWith("/dealer/commercial-evs")
+            : pathname === href || pathname.startsWith(href + "/");
+          const itemClass = cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors w-full text-left",
+            active
+              ? "bg-emerald-500/15 text-emerald-400"
+              : "text-slate-400 hover:bg-slate-800 hover:text-white",
+          );
+          if (chooser) {
+            return (
+              <button
+                key={href}
+                onClick={() => {
+                  onClose?.();
+                  setChooserOpen(true);
+                }}
+                className={itemClass}
+              >
+                <Icon className="h-4 w-4 flex-shrink-0" />
+                {label}
+                {active && (
+                  <ChevronRight className="h-3.5 w-3.5 ml-auto text-emerald-400/60" />
+                )}
+              </button>
+            );
+          }
           return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onClose}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
-                active
-                  ? "bg-emerald-500/15 text-emerald-400"
-                  : "text-slate-400 hover:bg-slate-800 hover:text-white",
-              )}
-            >
+            <Link key={href} href={href} onClick={onClose} className={itemClass}>
               <Icon className="h-4 w-4 flex-shrink-0" />
               {label}
               {active && (
@@ -153,6 +176,7 @@ function Sidebar({
           );
         })}
       </nav>
+      <ListingTypeChooser open={chooserOpen} onOpenChange={setChooserOpen} />
 
       {/* Logout */}
       <div className="px-3 pb-5 flex-shrink-0">

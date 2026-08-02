@@ -7,12 +7,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Truck, Plus } from "lucide-react";
+import { Truck, Plus, Car } from "lucide-react";
 import { CommercialEvCard } from "@/app/(common)/CommercialEVCard";
 import type { DealerCommercialEv } from "./page";
+import { ListingTypeTabs } from "../ListingTypeTabs";
 
 interface Props {
   initialEvs: DealerCommercialEv[];
+  carCount?: number;
 }
 
 const LIMIT = 9;
@@ -27,7 +29,7 @@ function getPageGroup(current: number, total: number) {
   return { pages };
 }
 
-export default function DealerCommercialEvsClient({ initialEvs }: Props) {
+export default function DealerCommercialEvsClient({ initialEvs, carCount = 0 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -57,11 +59,13 @@ export default function DealerCommercialEvsClient({ initialEvs }: Props) {
 
   return (
     <div className="max-w-screen-xl mx-auto">
+      <ListingTypeTabs active="commercial-evs" />
+
       <div className="mb-8 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Commercial EVs</h1>
           <p className="text-slate-500 text-sm mt-1">
-            Electric vans, trucks, lorries and buses on SGElectrik
+            Electric vans, trucks, lorries and buses — separate from your passenger car listings
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -83,13 +87,24 @@ export default function DealerCommercialEvsClient({ initialEvs }: Props) {
             <Truck className="h-10 w-10 mx-auto mb-3 text-slate-300" />
             <p className="text-slate-500 font-medium">No commercial EVs yet</p>
             <p className="text-slate-400 text-sm mt-1 mb-4">
-              Add the first commercial EV to get started.
+              {carCount > 0
+                ? `Add your first commercial EV — your ${carCount} passenger car${carCount !== 1 ? "s are" : " is"} managed on the Cars tab.`
+                : "Add the first commercial EV to get started."}
             </p>
-            <Link href="/dealer/commercial-evs/new">
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" /> Add commercial EV
-              </Button>
-            </Link>
+            <div className="flex items-center justify-center gap-2">
+              <Link href="/dealer/commercial-evs/new">
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" /> Add commercial EV
+                </Button>
+              </Link>
+              {carCount > 0 && (
+                <Link href="/dealer/cars">
+                  <Button variant="outline" className="gap-2">
+                    <Car className="h-4 w-4" /> View {carCount} car{carCount !== 1 ? "s" : ""}
+                  </Button>
+                </Link>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

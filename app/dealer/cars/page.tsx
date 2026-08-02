@@ -13,8 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Car, Plus, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
+import { Car, Plus, Pencil, ChevronLeft, ChevronRight, Truck } from "lucide-react";
 import { DeleteCarButton } from "./DeleteCarButton";
+import { ListingTypeTabs } from "../ListingTypeTabs";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -58,6 +59,20 @@ async function getDealerByEmail(email: string) {
   }
 
   return data;
+}
+
+async function getCommercialEvCount(dealerId: number): Promise<number> {
+  const { count, error } = await supabaseServer
+    .from("commercial_evs")
+    .select("*", { count: "exact", head: true })
+    .eq("dealer_id", dealerId);
+
+  if (error) {
+    console.error("getCommercialEvCount:", error.message);
+    return 0;
+  }
+
+  return count ?? 0;
 }
 
 async function getDealerCars(
@@ -215,6 +230,7 @@ export default async function DealerCarsPage({ searchParams }: PageProps) {
     ? dealer.car_ids.map(Number)
     : [];
   const { cars, total } = await getDealerCars(carIds, currentPage);
+  const commercialEvCount = total === 0 ? await getCommercialEvCount(dealer.id) : 0;
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   // Clamp so safePage is never beyond what exists
@@ -222,6 +238,8 @@ export default async function DealerCarsPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-full mx-auto space-y-6">
+      <ListingTypeTabs active="cars" />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -230,7 +248,7 @@ export default async function DealerCarsPage({ searchParams }: PageProps) {
             My Cars
           </h1>
           <p className="text-slate-500 text-sm mt-0.5">
-            {total} listing{total !== 1 ? "s" : ""}
+            {total} listing{total !== 1 ? "s" : ""} · passenger cars only — commercial EVs are managed separately
           </p>
         </div>
         <Button asChild className="gap-2">
@@ -247,14 +265,26 @@ export default async function DealerCarsPage({ searchParams }: PageProps) {
           <Car className="h-10 w-10 text-slate-300 mb-3" />
           <p className="text-slate-500 font-medium">No cars yet</p>
           <p className="text-slate-400 text-sm mt-1">
-            Add your first listing to get started.
+            {commercialEvCount > 0
+              ? `Add your first passenger car listing — your ${commercialEvCount} commercial EV${commercialEvCount !== 1 ? "s are" : " is"} managed on the Commercial EVs tab.`
+              : "Add your first listing to get started."}
           </p>
-          <Button asChild className="mt-4 gap-2" size="sm">
-            <Link href="/dealer/cars/new">
-              <Plus className="h-4 w-4" />
-              Add car
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2 mt-4">
+            <Button asChild className="gap-2" size="sm">
+              <Link href="/dealer/cars/new">
+                <Plus className="h-4 w-4" />
+                Add car
+              </Link>
+            </Button>
+            {commercialEvCount > 0 && (
+              <Button asChild variant="outline" className="gap-2" size="sm">
+                <Link href="/dealer/commercial-evs">
+                  <Truck className="h-4 w-4" />
+                  View {commercialEvCount} commercial EV{commercialEvCount !== 1 ? "s" : ""}
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
         <>
