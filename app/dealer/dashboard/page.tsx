@@ -27,6 +27,15 @@ interface DealerProfile {
   slug: string;
 }
 
+interface CarAnalytics {
+  carId: number;
+  carName: string;
+  car_view: number;
+  car_favorited: number;
+  whatsapp_click: number;
+  get_deal_click: number;
+}
+
 interface DealerAnalytics {
   windowDays: number;
   car_view: number;
@@ -34,6 +43,7 @@ interface DealerAnalytics {
   whatsapp_click: number;
   get_deal_click: number;
   dealer_view: number;
+  perCar: CarAnalytics[];
 }
 
 interface RecentLead {
@@ -355,6 +365,56 @@ export default function DealerDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Per-car breakdown */}
+      <Card className="border-0 shadow-sm mt-5">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">
+            Views by Car
+          </CardTitle>
+          <p className="text-xs text-slate-400">
+            Last {analytics?.windowDays ?? 30} days · sorted by most viewed
+          </p>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-slate-400 text-sm py-4 text-center">
+              Loading...
+            </p>
+          ) : analytics?.perCar?.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-slate-400 border-b border-slate-100">
+                    <th className="pb-2 font-medium">Car</th>
+                    <th className="pb-2 font-medium text-right">Views</th>
+                    <th className="pb-2 font-medium text-right">Favorited</th>
+                    <th className="pb-2 font-medium text-right">WhatsApp</th>
+                    <th className="pb-2 font-medium text-right">Get Deal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analytics.perCar.map((c) => (
+                    <tr key={c.carId} className="border-b border-slate-50 last:border-0">
+                      <td className="py-2 font-medium text-slate-700">
+                        {c.carName}
+                      </td>
+                      <td className="py-2 text-right text-slate-600">{c.car_view}</td>
+                      <td className="py-2 text-right text-slate-600">{c.car_favorited}</td>
+                      <td className="py-2 text-right text-slate-600">{c.whatsapp_click}</td>
+                      <td className="py-2 text-right text-slate-600">{c.get_deal_click}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-slate-400 text-sm py-4 text-center">
+              No per-car activity yet
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
