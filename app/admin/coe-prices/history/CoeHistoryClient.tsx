@@ -60,6 +60,13 @@ function toForm(row: CoeHistoryRow): RowForm {
   };
 }
 
+function labelYearMismatch(label: string, dateIso: string): boolean {
+  const labelYear = label.match(/\b(20\d{2})\b/)?.[1];
+  if (!labelYear || !dateIso) return false;
+  const dateYear = dateIso.slice(0, 4);
+  return labelYear !== dateYear;
+}
+
 function toPayload(f: RowForm) {
   return {
     exercise_date: f.exercise_date,
@@ -96,6 +103,12 @@ function ExerciseModal({
     e.preventDefault();
     if (!form.exercise_date || !form.exercise_label.trim()) {
       setError("Date and label are required");
+      return;
+    }
+    if (labelYearMismatch(form.exercise_label, form.exercise_date)) {
+      setError(
+        `Exercise date (${form.exercise_date}) doesn't match the year in the label "${form.exercise_label.trim()}". Fix one of them before saving.`
+      );
       return;
     }
     setError("");
