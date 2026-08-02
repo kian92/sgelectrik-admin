@@ -33,6 +33,7 @@ interface DealerAnalytics {
   car_favorited: number;
   whatsapp_click: number;
   get_deal_click: number;
+  dealer_view: number;
 }
 
 interface RecentLead {
@@ -160,9 +161,9 @@ export default function DealerDashboard() {
 
       {/* Stat cards */}
       <p className="text-xs text-slate-400 mb-2">
-        Leads this month · Profile views, WhatsApp clicks and favorites are from the last {analytics?.windowDays ?? 30} days
+        Leads this month · Profile views, car listing views, WhatsApp clicks and favorites are from the last {analytics?.windowDays ?? 30} days
       </p>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
         {[
           {
             label: "Active Listings",
@@ -183,10 +184,17 @@ export default function DealerDashboard() {
           },
           {
             label: "Profile views",
-            value: analytics?.car_view ?? "—",
+            value: analytics?.dealer_view ?? "—",
             icon: FileText,
             color: "text-amber-600",
             bg: "bg-amber-50",
+          },
+          {
+            label: "Car listing views",
+            value: analytics?.car_view ?? "—",
+            icon: Car,
+            color: "text-cyan-600",
+            bg: "bg-cyan-50",
           },
           {
             label: "WhatsApp clicks",

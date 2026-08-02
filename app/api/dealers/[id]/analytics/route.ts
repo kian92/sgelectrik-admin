@@ -5,7 +5,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 type Params = { params: Promise<{ id: string }> };
 
-const EVENT_TYPES = ["car_view", "car_favorited", "whatsapp_click", "get_deal_click"] as const;
+const EVENT_TYPES = [
+  "car_view",
+  "car_favorited",
+  "whatsapp_click",
+  "get_deal_click",
+  "dealer_view",
+] as const;
 const WINDOW_DAYS = 30;
 
 // GET /api/dealers/[id]/analytics
