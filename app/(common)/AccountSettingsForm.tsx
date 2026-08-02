@@ -5,9 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useDealerAuth } from "@/app/contexts/dealer-auth";
-import { UserCircle, KeyRound } from "lucide-react";
+import { UserCircle, KeyRound, Building2 } from "lucide-react";
+
+const AREA_OPTIONS = ["Central", "North", "South", "East", "West"];
 
 interface Account {
   id: number;
@@ -17,6 +27,16 @@ interface Account {
   phone: string | null;
   whatsapp_number: string | null;
   area: string | null;
+  short_name: string | null;
+  brands: string[] | null;
+  address: string | null;
+  website: string | null;
+  hours: string | null;
+  established: number | null;
+  showrooms: number | null;
+  description: string | null;
+  highlights: string[] | null;
+  certifications: string[] | null;
 }
 
 interface Props {
@@ -39,6 +59,20 @@ export default function AccountSettingsForm({ showDealerFields }: Props) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
+  // Business profile (dealer only)
+  const [shortName, setShortName] = useState("");
+  const [businessArea, setBusinessArea] = useState("Central");
+  const [brands, setBrands] = useState("");
+  const [address, setAddress] = useState("");
+  const [website, setWebsite] = useState("");
+  const [hours, setHours] = useState("");
+  const [established, setEstablished] = useState("");
+  const [showrooms, setShowrooms] = useState("1");
+  const [description, setDescription] = useState("");
+  const [highlights, setHighlights] = useState("");
+  const [certifications, setCertifications] = useState("");
+  const [isSavingBusiness, setIsSavingBusiness] = useState(false);
+
   useEffect(() => {
     async function load() {
       try {
@@ -50,6 +84,17 @@ export default function AccountSettingsForm({ showDealerFields }: Props) {
           setPhone(data.phone ?? "");
           setWhatsappNumber(data.whatsapp_number ?? "+65 ");
           setArea(data.area ?? "");
+          setShortName(data.short_name ?? "");
+          setBusinessArea(data.area ?? "Central");
+          setBrands((data.brands ?? []).join(", "));
+          setAddress(data.address ?? "");
+          setWebsite(data.website ?? "");
+          setHours(data.hours ?? "");
+          setEstablished(data.established ? String(data.established) : "");
+          setShowrooms(data.showrooms ? String(data.showrooms) : "1");
+          setDescription(data.description ?? "");
+          setHighlights((data.highlights ?? []).join("\n"));
+          setCertifications((data.certifications ?? []).join(", "));
         }
       } finally {
         setLoading(false);
@@ -86,6 +131,42 @@ export default function AccountSettingsForm({ showDealerFields }: Props) {
       toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
       setIsSavingProfile(false);
+    }
+  }
+
+  async function handleSaveBusinessProfile() {
+    setIsSavingBusiness(true);
+    try {
+      const body = {
+        shortName,
+        area: businessArea,
+        brands: brands.split(",").map((s) => s.trim()).filter(Boolean),
+        address,
+        website,
+        hours,
+        established: established || null,
+        showrooms,
+        description,
+        highlights: highlights.split("\n").map((s) => s.trim()).filter(Boolean),
+        certifications: certifications.split(",").map((s) => s.trim()).filter(Boolean),
+      };
+
+      const res = await fetch("/api/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+
+      if (!res.ok) throw new Error(json.error ?? "Failed to save changes");
+
+      setAccount(json);
+      toast({ title: "Business profile updated" });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Something went wrong";
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setIsSavingBusiness(false);
     }
   }
 
@@ -207,6 +288,153 @@ export default function AccountSettingsForm({ showDealerFields }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Business Profile */}
+      {showDealerFields && (
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-blue-100 flex items-center justify-center">
+                <Building2 className="h-5 w-5 text-blue-600" />
+              </div>
+              <CardTitle className="text-base font-semibold">
+                Business Profile
+              </CardTitle>
+            </div>
+            <p className="text-xs text-slate-400 pl-12">
+              Shown on your public dealer page. Contact an admin to change
+              your dealer name or URL.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="shortName">Short Name</Label>
+                <Input
+                  id="shortName"
+                  value={shortName}
+                  onChange={(e) => setShortName(e.target.value)}
+                  placeholder={name}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="businessArea">Area</Label>
+                <Select value={businessArea} onValueChange={setBusinessArea}>
+                  <SelectTrigger id="businessArea">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AREA_OPTIONS.map((a) => (
+                      <SelectItem key={a} value={a}>
+                        {a}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="brands">Brands (comma separated)</Label>
+              <Input
+                id="brands"
+                value={brands}
+                onChange={(e) => setBrands(e.target.value)}
+                placeholder="e.g. Tesla, BYD"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="website">Website</Label>
+                <Input
+                  id="website"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  placeholder="https://"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="hours">Opening Hours</Label>
+                <Input
+                  id="hours"
+                  value={hours}
+                  onChange={(e) => setHours(e.target.value)}
+                  placeholder="Mon–Sat 9am–7pm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="established">Est. Year</Label>
+                <Input
+                  id="established"
+                  type="number"
+                  value={established}
+                  onChange={(e) => setEstablished(e.target.value)}
+                  placeholder="e.g. 1990"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="showrooms">Showrooms</Label>
+                <Input
+                  id="showrooms"
+                  type="number"
+                  min="1"
+                  value={showrooms}
+                  onChange={(e) => setShowrooms(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="highlights">Highlights (one per line)</Label>
+              <Textarea
+                id="highlights"
+                value={highlights}
+                onChange={(e) => setHighlights(e.target.value)}
+                rows={3}
+                placeholder={"Authorised BYD dealer\n125+ years of heritage"}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="certifications">Certifications (comma separated)</Label>
+              <Input
+                id="certifications"
+                value={certifications}
+                onChange={(e) => setCertifications(e.target.value)}
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <Button onClick={handleSaveBusinessProfile} disabled={isSavingBusiness}>
+                {isSavingBusiness ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Password */}
       <Card className="border-0 shadow-sm">

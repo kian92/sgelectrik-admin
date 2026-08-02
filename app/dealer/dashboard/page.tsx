@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useDealerAuth } from "@/app/contexts/dealer-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Car, Users, FileText, Building2, ExternalLink, MessageCircle, Truck } from "lucide-react";
+import { Car, Users, FileText, Building2, ExternalLink, MessageCircle, Truck, Settings } from "lucide-react";
 
 interface DealerCar {
   id: number;
@@ -139,14 +139,21 @@ export default function DealerDashboard() {
                 </p>
               </div>
             </div>
-            <Link
-              href={`${process.env.NEXT_PUBLIC_USER_URL}/dealers/${profile.slug}`}
-              target="_blank"
-            >
-              <Button variant="outline" size="sm" className="gap-2 bg-white">
-                <ExternalLink className="h-3.5 w-3.5" /> View public profile
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/dealer/settings">
+                <Button variant="outline" size="sm" className="gap-2 bg-white">
+                  <Settings className="h-3.5 w-3.5" /> Edit profile
+                </Button>
+              </Link>
+              <Link
+                href={`${process.env.NEXT_PUBLIC_USER_URL}/dealers/${profile.slug}`}
+                target="_blank"
+              >
+                <Button variant="outline" size="sm" className="gap-2 bg-white">
+                  <ExternalLink className="h-3.5 w-3.5" /> View public profile
+                </Button>
+              </Link>
+            </div>
           </CardContent>
         </Card>
       )}

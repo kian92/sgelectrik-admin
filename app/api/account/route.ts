@@ -12,7 +12,9 @@ export async function GET() {
 
   const { data, error } = await supabaseServer
     .from("dealers")
-    .select("id, name, email, role, phone, whatsapp_number, area")
+    .select(
+      "id, name, email, role, phone, whatsapp_number, area, short_name, brands, address, website, hours, established, showrooms, description, highlights, certifications",
+    )
     .eq("id", session.user.id)
     .single();
 
@@ -31,7 +33,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json();
-  const update: Record<string, string | null> = {};
+  const update: Record<string, string | number | string[] | null> = {};
 
   if (typeof body.name === "string") {
     if (!body.name.trim()) {
@@ -56,6 +58,38 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.area === "string") {
     update.area = body.area.trim() || null;
   }
+  if (typeof body.shortName === "string") {
+    update.short_name = body.shortName.trim() || null;
+  }
+  if (typeof body.address === "string") {
+    update.address = body.address.trim() || null;
+  }
+  if (typeof body.website === "string") {
+    update.website = body.website.trim() || null;
+  }
+  if (typeof body.hours === "string") {
+    update.hours = body.hours.trim() || null;
+  }
+  if (typeof body.description === "string") {
+    update.description = body.description.trim() || null;
+  }
+  if (typeof body.established === "string" || body.established === null) {
+    const n = body.established ? parseInt(body.established, 10) : null;
+    update.established = n && Number.isFinite(n) ? n : null;
+  }
+  if (typeof body.showrooms === "string") {
+    const n = parseInt(body.showrooms, 10);
+    update.showrooms = Number.isFinite(n) && n > 0 ? n : 1;
+  }
+  if (Array.isArray(body.brands)) {
+    update.brands = body.brands.map((s: unknown) => String(s).trim()).filter(Boolean);
+  }
+  if (Array.isArray(body.highlights)) {
+    update.highlights = body.highlights.map((s: unknown) => String(s).trim()).filter(Boolean);
+  }
+  if (Array.isArray(body.certifications)) {
+    update.certifications = body.certifications.map((s: unknown) => String(s).trim()).filter(Boolean);
+  }
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
@@ -65,7 +99,9 @@ export async function PATCH(req: NextRequest) {
     .from("dealers")
     .update({ ...update, updated_at: new Date().toISOString() })
     .eq("id", session.user.id)
-    .select("id, name, email, role, phone, whatsapp_number, area")
+    .select(
+      "id, name, email, role, phone, whatsapp_number, area, short_name, brands, address, website, hours, established, showrooms, description, highlights, certifications",
+    )
     .single();
 
   if (error || !data) {
