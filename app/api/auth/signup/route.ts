@@ -13,9 +13,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!["admin", "dealer"].includes(role)) {
+  if (role !== "dealer") {
     return NextResponse.json(
-      { error: "Role must be admin or dealer." },
+      { error: "Public signup is only available for dealer accounts." },
       { status: 400 },
     );
   }

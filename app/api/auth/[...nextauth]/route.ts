@@ -70,7 +70,8 @@ export const authOptions: NextAuthOptions = {
           token.dbId = data.id;
           token.name = data.name;
           token.email = data.email;
-          token.role = data.role;
+          // Keep existing admin accounts working while the role migration runs.
+          token.role = data.role === "admin" ? "superadmin" : data.role;
           token.status = data.status;
           token.slug = data.slug;
           token.shortName = data.short_name;
@@ -87,7 +88,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.dbId as number;
-        session.user.role = token.role as "admin" | "dealer";
+        session.user.role = token.role as "superadmin" | "editor" | "dealer";
         session.user.status = token.status as string;
         session.user.slug = token.slug as string;
         session.user.shortName = token.shortName as string;

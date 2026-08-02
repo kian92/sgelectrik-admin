@@ -9,7 +9,7 @@ type Params = { params: Promise<{ id: string }> };
 // PATCH /api/dealers/[id]/password — admin resets a dealer's password
 export async function PATCH(req: NextRequest, { params }: Params) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== "admin") {
+  if (!session?.user || session.user.role !== "superadmin") {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
 

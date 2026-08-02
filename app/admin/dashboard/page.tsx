@@ -39,13 +39,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/backoffice-login");
-    } else if (status === "authenticated" && session?.user?.role !== "admin") {
+    } else if (status === "authenticated" && session?.user?.role !== "superadmin") {
       router.push("/dealer/dashboard");
     }
   }, [status, session, router]);
 
   useEffect(() => {
-    if (status !== "authenticated" || session?.user?.role !== "admin") return;
+    if (status !== "authenticated" || session?.user?.role !== "superadmin") return;
 
     async function load() {
       try {
@@ -87,7 +87,7 @@ export default function AdminDashboard() {
   }
 
   // Redirect handled by useEffect — render nothing while redirecting
-  if (status !== "authenticated" || session?.user?.role !== "admin") {
+  if (status !== "authenticated" || session?.user?.role !== "superadmin") {
     return null;
   }
 

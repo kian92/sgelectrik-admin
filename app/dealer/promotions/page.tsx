@@ -36,7 +36,7 @@ export default async function DealerPromotionsPage() {
 
   if (!session?.user) redirect("/backoffice-login");
 
-  const isAdmin = session.user.role === "admin";
+  const isAdmin = session.user.role === "superadmin";
   const promotions = await getPromotions(session.user.id, isAdmin);
 
   return (

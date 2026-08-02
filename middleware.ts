@@ -1,18 +1,30 @@
-import { withAuth } from "next-auth/middleware";
-import type { NextRequest } from "next/server";
+import { withAuth, type NextRequestWithAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 export const middleware = withAuth(
-  function middleware(req: any) {
+  function middleware(req: NextRequestWithAuth) {
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
-    // Admin routes - require admin role
+    if (pathname.startsWith("/api") && token?.role === "editor") {
+      const editorApi =
+        pathname.startsWith("/api/blog-posts") ||
+        pathname.startsWith("/api/upload") ||
+        pathname.startsWith("/api/auth");
+      if (!editorApi) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+
+    // Superadmins can access every admin route; editors are limited to blog.
     if (pathname.startsWith("/admin")) {
       if (!token) {
         return NextResponse.redirect(new URL("/backoffice-login", req.url));
       }
-      if (token.role !== "admin") {
+      if (token.role === "editor" && pathname.startsWith("/admin/blog")) {
+        return NextResponse.next();
+      }
+      if (token.role !== "superadmin") {
         return NextResponse.redirect(new URL("/dealer/dashboard", req.url));
       }
     }
@@ -22,7 +34,7 @@ export const middleware = withAuth(
       if (!token) {
         return NextResponse.redirect(new URL("/backoffice-login", req.url));
       }
-      if (token.role !== "dealer" && token.role !== "admin") {
+      if (token.role !== "dealer" && token.role !== "superadmin") {
         return NextResponse.redirect(new URL("/backoffice-login", req.url));
       }
     }
@@ -63,5 +75,6 @@ export const config = {
     "/backoffice-login",
     "/backoffice-signup",
     "/auth/callback", // ← add this line
+    "/api/:path*",
   ],
 };

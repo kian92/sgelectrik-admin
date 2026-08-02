@@ -7,6 +7,8 @@ import {
   deleteRawFromBunny,
   type ContentType,
 } from "@/app/lib/bunny";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 function tempChunkPath(uploadId: string, chunkIndex: number) {
   // uploadId is a client-generated token; scope it to a temp namespace so
@@ -17,10 +19,20 @@ function tempChunkPath(uploadId: string, chunkIndex: number) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: "Unauthorised" }, { status: 401 });
+    }
     const formData = await request.formData();
     const file = formData.get("file") as File;
     const contentType =
       (formData.get("contentType") as ContentType) || "general";
+    if (
+      session.user.role === "editor" &&
+      contentType !== "blog"
+    ) {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
 
     if (!file) {
       return NextResponse.json(

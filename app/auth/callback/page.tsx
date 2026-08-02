@@ -27,7 +27,11 @@ export default function AuthCallbackPage() {
     if (status === "authenticated") {
       const role = session?.user?.role;
       router.replace(
-        role === "admin" ? "/admin/dashboard" : "/dealer/dashboard",
+        role === "editor"
+          ? "/admin/blog"
+          : role === "superadmin"
+            ? "/admin/dashboard"
+            : "/dealer/dashboard",
       );
     }
   }, [status, session, router]);

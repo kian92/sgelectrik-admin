@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   }
-  if (session.user.role !== "admin" && String(session.user.id) !== id) {
+  if (session.user.role !== "superadmin" && String(session.user.id) !== id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

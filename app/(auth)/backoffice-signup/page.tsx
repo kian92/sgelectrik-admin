@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -11,8 +10,6 @@ import {
   Eye,
   EyeOff,
   User,
-  ShieldCheck,
-  Store,
   AlertCircle,
   CheckCircle2,
   Clock,
@@ -21,14 +18,12 @@ import { useDealerAuth } from "@/app/contexts/dealer-auth";
 import Image from "next/image";
 
 export default function SignUpPage() {
-  const router = useRouter();
-  const { refresh } = useDealerAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [role, setRole] = useState<"dealer" | "admin">("dealer");
+  const role = "dealer" as const;
   const [showPw, setShowPw] = useState(false);
   const [showCp, setShowCp] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -163,39 +158,6 @@ export default function SignUpPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* ── Role selector ── */}
-              <div className="hidden">
-                <label className="text-sm font-medium text-slate-700 mb-2 block">
-                  Account role
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setRole("dealer")}
-                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 text-sm font-medium transition-all ${
-                      role === "dealer"
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                        : "border-slate-200 text-slate-500 hover:border-slate-300"
-                    }`}
-                  >
-                    <Store className="h-4 w-4" />
-                    Dealer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole("admin")}
-                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 text-sm font-medium transition-all ${
-                      role === "admin"
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                        : "border-slate-200 text-slate-500 hover:border-slate-300"
-                    }`}
-                  >
-                    <ShieldCheck className="h-4 w-4" />
-                    Admin
-                  </button>
-                </div>
-              </div>
-
               {/* ── Full name ── */}
               <div>
                 <label

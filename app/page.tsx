@@ -17,7 +17,11 @@ export default function Home() {
     }
 
     router.replace(
-      dealer.role === "admin" ? "/admin/dashboard" : "/dealer/dashboard",
+      dealer.role === "editor"
+        ? "/admin/blog"
+        : dealer.role === "superadmin"
+          ? "/admin/dashboard"
+          : "/dealer/dashboard",
     );
   }, [dealer, loading, router]);
 

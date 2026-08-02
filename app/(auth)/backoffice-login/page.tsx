@@ -46,7 +46,13 @@ export default function SignInPage() {
         setError("Signed in, but couldn't load your account. Please try again.");
         return;
       }
-      router.push(role === "admin" ? "/admin/dashboard" : "/dealer/dashboard");
+      router.push(
+        role === "editor"
+          ? "/admin/blog"
+          : role === "superadmin"
+            ? "/admin/dashboard"
+            : "/dealer/dashboard",
+      );
     } else {
       setError("Invalid email or password. Please try again.");
     }

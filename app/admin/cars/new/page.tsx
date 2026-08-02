@@ -20,7 +20,7 @@ async function getDealers() {
 
 export default async function AdminNewCarPage() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") {
+  if (!session || session.user.role !== "superadmin") {
     redirect("/backoffice-login");
   }
 

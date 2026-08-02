@@ -9,7 +9,7 @@ type Dealer = {
   name?: string | null;
   email?: string | null;
   image?: string | null;
-  role: "admin" | "dealer";
+  role: "superadmin" | "editor" | "dealer";
   status: string;
   slug: string;
   shortName: string;
@@ -68,7 +68,7 @@ export function DealerAuthProvider({ children }: { children: ReactNode }) {
       value={{
         dealer,
         loading: status === "loading",
-        isAdmin: dealer?.role === "admin",
+        isAdmin: dealer?.role === "superadmin" || dealer?.role === "editor",
         refresh,
       }}
     >

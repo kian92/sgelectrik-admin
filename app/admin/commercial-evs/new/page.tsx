@@ -14,7 +14,7 @@ async function getDealers() {
 
 export default async function NewCommercialEvPage() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "admin") redirect("/backoffice-login");
+  if (!session || session.user.role !== "superadmin") redirect("/backoffice-login");
 
   const dealers = await getDealers();
 

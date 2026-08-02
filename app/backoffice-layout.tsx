@@ -23,6 +23,7 @@ import {
   Truck,
   Tag,
   Settings,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "./lib/utils";
@@ -43,6 +44,11 @@ const ADMIN_NAV = [
   { href: "/admin/commercial-evs", label: "Commercial EVs", icon: Truck },
   { href: "/admin/promotions", label: "Promotions", icon: Tag },
   { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/staff", label: "Internal Staff", icon: ShieldCheck },
+];
+
+const EDITOR_NAV = [
+  { href: "/admin/blog", label: "Blog", icon: BookOpen },
 ];
 
 const DEALER_NAV = [
@@ -65,12 +71,13 @@ function Sidebar({
 }) {
   const { dealer, isAdmin } = useDealerAuth();
   const pathname = usePathname();
+  const isEditor = dealer?.role === "editor";
   const nav: {
     href: string;
     label: string;
     icon: typeof Car;
     chooser?: boolean;
-  }[] = isAdmin ? ADMIN_NAV : DEALER_NAV;
+  }[] = isEditor ? EDITOR_NAV : isAdmin ? ADMIN_NAV : DEALER_NAV;
   const [chooserOpen, setChooserOpen] = useState(false);
 
   return (
@@ -130,7 +137,7 @@ function Sidebar({
                 : "bg-emerald-500/20 text-emerald-400",
             )}
           >
-            {isAdmin ? "Admin" : "Dealer"}
+            {isEditor ? "Editor" : isAdmin ? "Superadmin" : "Dealer"}
           </span>
         </div>
       </div>

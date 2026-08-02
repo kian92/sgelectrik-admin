@@ -56,13 +56,13 @@ export default function AdminDealerAnalyticsPage() {
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/backoffice-login");
-    } else if (status === "authenticated" && session?.user?.role !== "admin") {
+    } else if (status === "authenticated" && session?.user?.role !== "superadmin") {
       router.push("/dealer/dashboard");
     }
   }, [status, session, router]);
 
   useEffect(() => {
-    if (status !== "authenticated" || session?.user?.role !== "admin") return;
+    if (status !== "authenticated" || session?.user?.role !== "superadmin") return;
 
     async function load() {
       try {
@@ -83,7 +83,7 @@ export default function AdminDealerAnalyticsPage() {
     load();
   }, [status, session, params.id]);
 
-  if (status === "loading" || status !== "authenticated" || session?.user?.role !== "admin") {
+  if (status === "loading" || status !== "authenticated" || session?.user?.role !== "superadmin") {
     return null;
   }
 

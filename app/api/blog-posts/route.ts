@@ -1,7 +1,16 @@
 import { supabaseServer } from "@/app/lib/supabase-server";
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+
+async function canManageBlog() {
+  const session = await getServerSession(authOptions);
+  return session?.user?.role === "superadmin" || session?.user?.role === "editor";
+}
 
 export async function GET(req: NextRequest) {
+  if (!(await canManageBlog()))
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   const status = req.nextUrl.searchParams.get("status");
 
   let query = supabaseServer
@@ -18,6 +27,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!(await canManageBlog()))
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   const body = await req.json();
 
   // Ensure content is always an array, never double-stringified

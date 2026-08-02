@@ -1,10 +1,19 @@
 import { supabaseServer } from "@/app/lib/supabase-server";
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+
+async function canManageBlog() {
+  const session = await getServerSession(authOptions);
+  return session?.user?.role === "superadmin" || session?.user?.role === "editor";
+}
 
 export async function GET(
   _: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  if (!(await canManageBlog()))
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   const { id } = await context.params;
 
   const { data, error } = await supabaseServer
@@ -23,6 +32,8 @@ export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  if (!(await canManageBlog()))
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   const { id } = await context.params;
   const body = await req.json();
 
@@ -56,6 +67,8 @@ export async function DELETE(
   _: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
+  if (!(await canManageBlog()))
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   const { id } = await context.params;
 
   await supabaseServer.from("blog_posts").delete().eq("id", Number(id));
