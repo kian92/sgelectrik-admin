@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,10 @@ import {
   EyeOff,
   Eye,
   KeyRound,
+  BarChart3,
+  FileText,
+  Car,
+  MessageCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -581,6 +585,30 @@ export default function AdminDealersClient({
   const [passwordDealer, setPasswordDealer] = useState<DealerDB | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [analyticsById, setAnalyticsById] = useState<
+    Record<number, { car_view: number; dealer_view: number; whatsapp_click: number }>
+  >({});
+
+  useEffect(() => {
+    const dealerRows = dealers.filter((d) => d.role === "dealer");
+    if (dealerRows.length === 0) return;
+
+    Promise.all(
+      dealerRows.map(async (d) => {
+        try {
+          const res = await fetch(`/api/dealers/${d.id}/analytics`);
+          if (!res.ok) return null;
+          const data = await res.json();
+          return [d.id, data] as const;
+        } catch {
+          return null;
+        }
+      }),
+    ).then((results) => {
+      const entries = results.filter((r): r is [number, any] => r !== null);
+      setAnalyticsById(Object.fromEntries(entries));
+    });
+  }, [dealers]);
 
   const load = useCallback(async () => {
     try {
@@ -764,6 +792,13 @@ export default function AdminDealersClient({
                       <Pencil className="h-3.5 w-3.5" /> Edit
                     </Button>
                     {dealer.role === "dealer" && (
+                      <Link href={`/admin/dealers/${dealer.id}/analytics`}>
+                        <Button size="sm" variant="ghost" className="text-slate-500 hover:text-slate-800 gap-1">
+                          <BarChart3 className="h-3.5 w-3.5" /> Analytics
+                        </Button>
+                      </Link>
+                    )}
+                    {dealer.role === "dealer" && (
                       <Button
                         size="sm"
                         variant="ghost"
@@ -819,6 +854,33 @@ export default function AdminDealersClient({
                     <p className="font-medium">{dealer.address}</p>
                   </div>
                 </div>
+
+                {dealer.role === "dealer" && analyticsById[dealer.id] && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-5 text-xs">
+                    <span className="flex items-center gap-1.5 text-slate-500">
+                      <FileText className="h-3.5 w-3.5 text-amber-500" />
+                      <span className="font-semibold text-slate-700">
+                        {analyticsById[dealer.id].dealer_view}
+                      </span>{" "}
+                      profile views
+                    </span>
+                    <span className="flex items-center gap-1.5 text-slate-500">
+                      <Car className="h-3.5 w-3.5 text-cyan-500" />
+                      <span className="font-semibold text-slate-700">
+                        {analyticsById[dealer.id].car_view}
+                      </span>{" "}
+                      car views
+                    </span>
+                    <span className="flex items-center gap-1.5 text-slate-500">
+                      <MessageCircle className="h-3.5 w-3.5 text-emerald-500" />
+                      <span className="font-semibold text-slate-700">
+                        {analyticsById[dealer.id].whatsapp_click}
+                      </span>{" "}
+                      WhatsApp clicks
+                    </span>
+                    <span className="text-slate-400">· last 30 days</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
