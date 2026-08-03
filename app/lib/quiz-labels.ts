@@ -1,23 +1,33 @@
 // Keep in sync with QuizAnswers / quiz option values in sgelectrik-web's
 // app/quiz/page.tsx — the quiz branches into "personal" and "commercial"
 // flows, each with their own field set and option values.
+//
+// Labels are keyed by camelCase (as stored in leads.quiz_answers JSON) with
+// snake_case aliases (as stored in the quiz_submissions table columns) so
+// the same lookup works for both sources.
 export const QUIZ_LABELS: Record<string, string> = {
   vehicleUse: "Vehicle use",
+  vehicle_use: "Vehicle use",
   budget: "Budget",
   dailyDistanceKm: "Daily distance",
+  daily_distance_km: "Daily distance",
   hasHomeCharging: "Home charging",
+  has_home_charging: "Home charging",
   priority: "Priority",
   commercialUse: "Main use",
+  commercial_use: "Main use",
   loadRequirement: "Carrying capacity",
+  load_requirement: "Carrying capacity",
   // Legacy field from an older quiz version — kept so historical leads
   // still render instead of falling through to the raw key.
   carType: "Car type",
 };
 
 export function formatQuizValue(key: string, value: unknown): string {
-  if (key === "hasHomeCharging") return value ? "Yes" : "No";
+  if (key === "hasHomeCharging" || key === "has_home_charging")
+    return value ? "Yes" : "No";
 
-  if (key === "vehicleUse") {
+  if (key === "vehicleUse" || key === "vehicle_use") {
     const map: Record<string, string> = {
       personal: "Personal or family car",
       commercial: "Commercial vehicle",
@@ -35,7 +45,7 @@ export function formatQuizValue(key: string, value: unknown): string {
     return map[String(value)] ?? String(value);
   }
 
-  if (key === "dailyDistanceKm") {
+  if (key === "dailyDistanceKm" || key === "daily_distance_km") {
     const map: Record<string, string> = {
       under50: "Under 50 km",
       "50-100": "50–100 km",
@@ -59,7 +69,7 @@ export function formatQuizValue(key: string, value: unknown): string {
     return map[String(value)] ?? String(value);
   }
 
-  if (key === "commercialUse") {
+  if (key === "commercialUse" || key === "commercial_use") {
     const map: Record<string, string> = {
       deliveries: "Deliveries",
       tools: "Carrying tools or equipment",
@@ -69,7 +79,7 @@ export function formatQuizValue(key: string, value: unknown): string {
     return map[String(value)] ?? String(value);
   }
 
-  if (key === "loadRequirement") {
+  if (key === "loadRequirement" || key === "load_requirement") {
     const map: Record<string, string> = {
       light: "Light loads",
       medium: "Medium loads",
