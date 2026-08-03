@@ -20,6 +20,7 @@ export interface Lead {
   preferred_car: string;
   quiz_answers: string | null;
   recommendation_result: string | null;
+  lead_source: string | null;
   created_at: string;
   dealer_id: number | null;
 }

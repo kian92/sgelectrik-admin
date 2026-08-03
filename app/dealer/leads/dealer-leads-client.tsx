@@ -60,6 +60,14 @@ function parseQuizAnswers(
   }
 }
 
+// lead_source values that mean the visitor took the AI Match quiz before
+// enquiring (vs. a direct enquiry from a car/dealer page) — see
+// QUICK_FLOW_SOURCES in sgelectrik-web's app/get-deal/page.tsx for the
+// direct-enquiry sources this excludes.
+function isFromQuiz(leadSource: string | null): boolean {
+  return !!leadSource && leadSource.startsWith("quiz");
+}
+
 // ── Lead row ─────────────────────────────────────────────────────────────────
 
 function LeadRow({
@@ -95,6 +103,15 @@ function LeadRow({
             {/* Name + badge */}
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="font-semibold text-slate-900">{lead.name}</span>
+              {isFromQuiz(lead.lead_source) ? (
+                <Badge className="text-xs bg-amber-100 text-amber-700 border-amber-200 gap-1">
+                  <Zap className="h-3 w-3" /> AI Quiz Match
+                </Badge>
+              ) : (
+                <Badge className="text-xs bg-slate-100 text-slate-600 border-slate-200">
+                  Direct Enquiry
+                </Badge>
+              )}
               {matchedCars.length > 0 && (
                 <Badge className="text-xs bg-emerald-100 text-emerald-700 border-emerald-200">
                   Interested in your cars
