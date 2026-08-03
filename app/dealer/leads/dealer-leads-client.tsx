@@ -16,10 +16,12 @@ import {
   Calendar,
   Building2,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import type { Lead, Dealer } from "./page";
 import BackofficeLayout from "@/app/backoffice-layout";
 import { useRouter, useSearchParams } from "next/navigation";
+import { QUIZ_LABELS, formatQuizValue } from "@/app/lib/quiz-labels";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,6 +49,17 @@ function parseRecs(recommendationResult: string | null): Rec[] {
   }
 }
 
+function parseQuizAnswers(
+  quizAnswers: string | null,
+): Record<string, unknown> | null {
+  if (!quizAnswers) return null;
+  try {
+    return JSON.parse(quizAnswers);
+  } catch {
+    return null;
+  }
+}
+
 // ── Lead row ─────────────────────────────────────────────────────────────────
 
 function LeadRow({
@@ -65,6 +78,7 @@ function LeadRow({
     dealerCarIds.map(String).includes(String(r.carId)),
   );
   const topRec = recs[0] ?? null;
+  const quizAnswers = parseQuizAnswers(lead.quiz_answers);
 
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
@@ -150,9 +164,31 @@ function LeadRow({
           </Button>
         </div>
 
-        {/* Expanded: AI recs + actions */}
+        {/* Expanded: quiz answers + AI recs + actions */}
         {expanded && (
           <div className="border-t border-slate-100 px-5 py-4 bg-slate-50/60 rounded-b-xl">
+            {quizAnswers && (
+              <div className="mb-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <Zap className="h-3.5 w-3.5 text-slate-400" /> Quiz Answers
+                </p>
+                <div className="bg-white border border-slate-200 rounded-xl divide-y divide-slate-100">
+                  {Object.entries(quizAnswers).map(([k, v]) => (
+                    <div
+                      key={k}
+                      className="flex items-center justify-between px-3 py-2"
+                    >
+                      <span className="text-xs text-slate-500">
+                        {QUIZ_LABELS[k] ?? k.replace(/_/g, " ")}
+                      </span>
+                      <span className="text-xs font-medium text-slate-900 text-right">
+                        {formatQuizValue(k, v)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {recs.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">

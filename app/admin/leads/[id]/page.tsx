@@ -20,6 +20,7 @@ import {
   Zap,
   DollarSign,
 } from "lucide-react";
+import { QUIZ_LABELS, formatQuizValue } from "@/app/lib/quiz-labels";
 
 interface Lead {
   id: number;
@@ -52,45 +53,6 @@ function getSource(lead: Lead): string {
   } catch {
     return "Direct enquiry";
   }
-}
-
-const QUIZ_LABELS: Record<string, string> = {
-  budget: "Budget",
-  dailyDistanceKm: "Daily distance",
-  hasHomeCharging: "Home charging",
-  carType: "Car type",
-  priority: "Priority",
-};
-
-function formatQuizValue(key: string, value: unknown): string {
-  if (key === "hasHomeCharging") return value ? "Yes" : "No";
-  if (key === "budget") {
-    const map: Record<string, string> = {
-      under100k: "Under S$100k",
-      under150k: "Under S$150k",
-      under200k: "Under S$200k",
-      above200k: "Above S$200k",
-    };
-    return map[String(value)] ?? String(value);
-  }
-  if (key === "dailyDistanceKm") {
-    const map: Record<string, string> = {
-      under50: "Under 50 km",
-      "50to100": "50–100 km",
-      above100: "Above 100 km",
-    };
-    return map[String(value)] ?? String(value);
-  }
-  if (key === "priority") {
-    const map: Record<string, string> = {
-      saveMoney: "Save money",
-      performance: "Performance",
-      range: "Long range",
-      convenience: "Convenience",
-    };
-    return map[String(value)] ?? String(value);
-  }
-  return String(value);
 }
 
 export default function LeadDetail() {
