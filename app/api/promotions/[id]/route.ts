@@ -1,4 +1,6 @@
 import { supabaseServer } from "@/app/lib/supabase-server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { NextRequest, NextResponse } from "next/server";
 
 // Next.js 15: params is a Promise
@@ -27,16 +29,36 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 // PATCH /api/promotions/[id]
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  }
+
   const { id: rawId } = await params;
   const id = parseInt(rawId);
   if (isNaN(id)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
+  if (session.user.role !== "superadmin") {
+    const { data: existing } = await supabaseServer
+      .from("promotions")
+      .select("dealer_id")
+      .eq("id", id)
+      .single();
+
+    if (!existing) {
+      return NextResponse.json({ error: "Promotion not found" }, { status: 404 });
+    }
+    if (String(existing.dealer_id) !== String(session.user.id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const body = await req.json();
 
   // Strip fields that should not be updated directly
-  const { id: _id, created_at: _ca, ...rest } = body;
+  const { id: _id, created_at: _ca, dealer_id: _dealerId, ...rest } = body;
 
   const { data, error } = await supabaseServer
     .from("promotions")
@@ -64,10 +86,30 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
 // DELETE /api/promotions/[id]
 export async function DELETE(_req: NextRequest, { params }: Params) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  }
+
   const { id: rawId } = await params;
   const id = parseInt(rawId);
   if (isNaN(id)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
+  if (session.user.role !== "superadmin") {
+    const { data: existing } = await supabaseServer
+      .from("promotions")
+      .select("dealer_id")
+      .eq("id", id)
+      .single();
+
+    if (!existing) {
+      return NextResponse.json({ error: "Promotion not found" }, { status: 404 });
+    }
+    if (String(existing.dealer_id) !== String(session.user.id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const { error } = await supabaseServer
