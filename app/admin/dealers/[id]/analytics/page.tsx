@@ -161,8 +161,8 @@ export default function AdminDealerAnalyticsPage() {
       </div>
 
       <p className="text-xs text-slate-400 mb-2">
-        Leads this month · Profile views, car listing views, WhatsApp clicks and favorites are from the last{" "}
-        {analytics?.windowDays ?? 30} days
+        Leads this month · Profile views, car listing views and WhatsApp clicks are from the last{" "}
+        {analytics?.windowDays ?? 30} days · Favorited is all-time
       </p>
       <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
         {statCards.map(({ label, value, icon: Icon, color, bg }) => (
