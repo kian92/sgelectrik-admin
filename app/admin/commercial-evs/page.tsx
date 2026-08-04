@@ -24,6 +24,7 @@ async function getEvs() {
     payloadKg: ev.payload_kg,
     status: ev.status,
     dealerSlug: ev.dealer_slug,
+    featured: ev.featured ?? false,
   }));
 }
 

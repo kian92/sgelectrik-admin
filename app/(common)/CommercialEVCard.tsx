@@ -5,7 +5,7 @@ import { useTransition } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Zap, Pencil, Trash2 } from "lucide-react";
+import { DollarSign, Zap, Pencil, Trash2, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface CommercialEv {
@@ -20,19 +20,28 @@ interface CommercialEv {
   payloadKg: number | null;
   status: string;
   dealerSlug: string;
+  featured?: boolean;
 }
 
 interface Props {
   ev: CommercialEv;
   editHref: string;
   onDeleted: (id: number) => void;
+  onToggleFeatured?: (ev: CommercialEv) => void;
+  togglingFeatured?: boolean;
 }
 
 function fmt(n: number) {
   return n ? `S$${(n / 1000).toFixed(0)}k` : "—";
 }
 
-export function CommercialEvCard({ ev, editHref, onDeleted }: Props) {
+export function CommercialEvCard({
+  ev,
+  editHref,
+  onDeleted,
+  onToggleFeatured,
+  togglingFeatured,
+}: Props) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
@@ -63,12 +72,26 @@ export function CommercialEvCard({ ev, editHref, onDeleted }: Props) {
               {ev.year ? ` · ${ev.year}` : ""}
             </p>
           </div>
-          <Badge
-            variant={ev.status === "active" ? "default" : "secondary"}
-            className="text-xs shrink-0"
-          >
-            {ev.status}
-          </Badge>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onToggleFeatured && (
+              <button
+                onClick={() => onToggleFeatured(ev)}
+                disabled={togglingFeatured}
+                title={ev.featured ? "Unfeature" : "Feature this EV"}
+                className="p-1 rounded hover:bg-slate-100 transition-colors disabled:opacity-40"
+              >
+                <Star
+                  className={`h-4 w-4 ${ev.featured ? "fill-amber-400 text-amber-400" : "text-slate-300"}`}
+                />
+              </button>
+            )}
+            <Badge
+              variant={ev.status === "active" ? "default" : "secondary"}
+              className="text-xs shrink-0"
+            >
+              {ev.status}
+            </Badge>
+          </div>
         </div>
 
         {/* Specs */}

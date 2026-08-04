@@ -87,5 +87,6 @@ function toRow(b: Record<string, unknown>) {
     ...(b.description !== undefined && { description: b.description }),
     ...(b.highlights !== undefined && { highlights: b.highlights }),
     ...(b.status !== undefined && { status: b.status }),
+    ...(b.featured !== undefined && { featured: b.featured }),
   };
 }

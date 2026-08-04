@@ -35,6 +35,7 @@ export default function AdminCommercialEvsClient({ initialEvs }: Props) {
   const [page, setPage] = useState(
     Math.max(1, Number(searchParams.get("page") || 1)),
   );
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const totalPages = Math.ceil(evs.length / LIMIT);
   const paginated = evs.slice((page - 1) * LIMIT, page * LIMIT);
@@ -52,6 +53,22 @@ export default function AdminCommercialEvsClient({ initialEvs }: Props) {
     if (nextPage !== page) {
       setPage(nextPage);
       router.replace(`?page=${nextPage}`, { scroll: false });
+    }
+  };
+
+  const handleToggleFeatured = async (ev: { id: number; featured?: boolean }) => {
+    setTogglingId(ev.id);
+    try {
+      await fetch(`/api/commercial-evs/${ev.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ featured: !ev.featured }),
+      });
+      setEvs((prev) =>
+        prev.map((e) => (e.id === ev.id ? { ...e, featured: !ev.featured } : e)),
+      );
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -105,6 +122,8 @@ export default function AdminCommercialEvsClient({ initialEvs }: Props) {
                 ev={ev}
                 editHref={`/admin/commercial-evs/edit/${ev.id}`}
                 onDeleted={handleDeleted}
+                onToggleFeatured={handleToggleFeatured}
+                togglingFeatured={togglingId === ev.id}
               />
             ))}
           </div>
