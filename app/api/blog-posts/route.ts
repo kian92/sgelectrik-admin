@@ -5,7 +5,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 async function canManageBlog() {
   const session = await getServerSession(authOptions);
-  return session?.user?.role === "superadmin" || session?.user?.role === "editor";
+  return (
+    session?.user?.role === "superadmin" || session?.user?.role === "editor"
+  );
 }
 
 export async function GET(req: NextRequest) {
@@ -33,10 +35,12 @@ export async function POST(req: NextRequest) {
 
   // Ensure content is always an array, never double-stringified
   if (typeof body.content === "string") {
-    try {
-      body.content = JSON.parse(body.content);
-    } catch {
-      body.content = [];
+    const trimmed = body.content.trim();
+    if (!trimmed.startsWith("<")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) body.content = parsed;
+      } catch {}
     }
   }
 

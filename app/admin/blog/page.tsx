@@ -1,6 +1,10 @@
 "use client";
 import { useEffect, useState, type FormEvent } from "react";
 import { format } from "date-fns";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { TextStyleKit } from "@tiptap/extension-text-style";
+import TiptapImage from "@tiptap/extension-image";
 import {
   BookOpen,
   Plus,
@@ -12,14 +16,18 @@ import {
   Clock,
   ImageIcon,
   Link2,
+  Bold as BoldIcon,
+  Italic as ItalicIcon,
+  Underline as UnderlineIcon,
+  Strikethrough,
+  List,
+  ListOrdered,
+  Quote,
+  Undo2,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  JsonContentBuilder,
-  type ContentBlock,
-} from "@/components/JsonContentBuilder";
 import { ImageUpload } from "@/components/FileUpload";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,7 +37,9 @@ interface BlogPost {
   slug: string;
   title: string;
   excerpt: string;
-  content: ContentBlock[] | string;
+  // Legacy posts store an array of JSON blocks (or a JSON-stringified array).
+  // New posts store an HTML string from the WYSIWYG editor.
+  content: unknown;
   category: string;
   author: string;
   author_role: string;
@@ -62,11 +72,21 @@ const CATEGORIES = [
   "News",
 ];
 
+const FONT_SIZES = ["12px", "14px", "16px", "20px", "24px", "32px"];
+const TEXT_COLORS = [
+  { label: "Default", value: "" },
+  { label: "Red", value: "#dc2626" },
+  { label: "Orange", value: "#ea580c" },
+  { label: "Green", value: "#16a34a" },
+  { label: "Blue", value: "#2563eb" },
+  { label: "Purple", value: "#9333ea" },
+];
+
 const EMPTY_FORM: {
   title: string;
   slug: string;
   excerpt: string;
-  content: ContentBlock[];
+  content: string;
   category: string;
   author: string;
   author_role: string;
@@ -79,7 +99,7 @@ const EMPTY_FORM: {
   title: "",
   slug: "",
   excerpt: "",
-  content: [],
+  content: "",
   category: "Guide",
   author: "SGElectrik Team",
   author_role: "Editor",
@@ -97,6 +117,98 @@ function slugify(t: string) {
     .replace(/^-|-$/g, "");
 }
 
+function legacyBlocksToHtml(blocks: any[]): string {
+  if (!Array.isArray(blocks) || blocks.length === 0) return "";
+  return blocks
+    .map((b) => {
+      const text = b?.text ?? "";
+      switch (b?.type) {
+        case "heading":
+          return `<h2>${text}</h2>`;
+        case "subheading": // in case any legacy posts used this
+          return `<h3>${text}</h3>`;
+        case "tip":
+          return `<blockquote>${text}</blockquote>`;
+        case "list":
+        case "bulletList": {
+          const items: string[] = Array.isArray(b.items) ? b.items : [];
+          return `<ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul>`;
+        }
+        case "table": {
+          const rows: any[] = Array.isArray(b.rows) ? b.rows : [];
+          const trs = rows
+            .map((r) => {
+              if (r && typeof r === "object" && !Array.isArray(r)) {
+                return `<tr><td>${r.label ?? ""}</td><td>${r.value ?? ""}</td></tr>`;
+              }
+              if (Array.isArray(r)) {
+                return `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`;
+              }
+              return "";
+            })
+            .join("");
+          return `<table><tbody>${trs}</tbody></table>`;
+        }
+        case "paragraph":
+        default:
+          return `<p>${text}</p>`;
+      }
+    })
+    .join("\n");
+}
+
+// Normalizes whatever is stored in post.content into an HTML string the
+// Tiptap editor can load. Handles: HTML string, JSON-stringified block array
+// (legacy, possibly double-stringified), and a raw block array.
+function contentToHtml(content: unknown): string {
+  if (typeof content === "string") {
+    const trimmed = content.trim();
+    if (trimmed.startsWith("<")) {
+      // Already HTML
+      return content;
+    }
+    try {
+      let parsed = JSON.parse(trimmed);
+      if (typeof parsed === "string") parsed = JSON.parse(parsed);
+      if (Array.isArray(parsed)) return legacyBlocksToHtml(parsed);
+    } catch {
+      // Not JSON either — treat as plain text
+      return trimmed ? `<p>${trimmed}</p>` : "";
+    }
+    return "";
+  }
+  if (Array.isArray(content)) {
+    return legacyBlocksToHtml(content);
+  }
+  return "";
+}
+
+const ToolbarBtn = ({
+  active,
+  onClick,
+  children,
+  title,
+}: {
+  active?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  title: string;
+}) => (
+  <button
+    type="button"
+    title={title}
+    onMouseDown={(e) => e.preventDefault()}
+    onClick={onClick}
+    className={`h-7 min-w-7 px-2 flex items-center justify-center rounded-md text-xs font-medium border transition-colors ${
+      active
+        ? "bg-slate-900 text-white border-slate-900"
+        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:text-slate-900"
+    }`}
+  >
+    {children}
+  </button>
+);
+
 export default function BlogAdmin() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,6 +223,44 @@ export default function BlogAdmin() {
   const [imageMode, setImageMode] = useState<"gradient" | "url">("gradient");
   const [previewImg, setPreviewImg] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showEditorImagePicker, setShowEditorImagePicker] = useState(false);
+  const [wasLegacyContent, setWasLegacyContent] = useState(false);
+  const [, setEditorTick] = useState(0);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        link: {
+          openOnClick: false,
+          HTMLAttributes: {
+            class: "blog-editor-link",
+            rel: "noopener noreferrer nofollow",
+            target: "_blank",
+          },
+        },
+      }),
+      TextStyleKit,
+      TiptapImage.configure({
+        allowBase64: false,
+        HTMLAttributes: {
+          style:
+            "max-width:min(100%,420px);max-height:240px;width:auto;height:auto;object-fit:contain;border-radius:8px;display:block;margin:0.75rem 0;",
+        },
+      }),
+    ],
+    content: "",
+    editorProps: {
+      attributes: {
+        class: "blog-editor-prosemirror",
+      },
+    },
+    onUpdate: ({ editor }) => {
+      setForm((f) => ({ ...f, content: editor.getHTML() }));
+    },
+    onSelectionUpdate: () => setEditorTick((n) => n + 1),
+    onTransaction: () => setEditorTick((n) => n + 1),
+  });
 
   const load = async () => {
     const res = await fetch("/api/blog-posts");
@@ -127,6 +277,8 @@ export default function BlogAdmin() {
     setForm(EMPTY_FORM);
     setImageMode("gradient");
     setPreviewImg("");
+    setWasLegacyContent(false);
+    editor?.commands.setContent("");
     setShowForm(true);
     setTimeout(
       () =>
@@ -139,28 +291,21 @@ export default function BlogAdmin() {
 
   function openEdit(post: BlogPost) {
     setEditing(post);
-    let parsedContent: ContentBlock[] = [];
 
-    if (typeof post.content === "string") {
-      try {
-        // Handle double-stringified JSON (legacy)
-        let parsed = JSON.parse(post.content);
-        if (typeof parsed === "string") {
-          parsed = JSON.parse(parsed);
-        }
-        parsedContent = Array.isArray(parsed) ? parsed : [];
-      } catch {
-        parsedContent = [];
-      }
-    } else if (Array.isArray(post.content)) {
-      parsedContent = post.content;
-    }
+    const isLegacy =
+      Array.isArray(post.content) ||
+      (typeof post.content === "string" &&
+        !post.content.trim().startsWith("<") &&
+        post.content.trim() !== "");
+    setWasLegacyContent(isLegacy);
+
+    const html = contentToHtml(post.content);
 
     setForm({
       title: post.title,
       slug: post.slug,
       excerpt: post.excerpt,
-      content: parsedContent,
+      content: html,
       category: post.category,
       author: post.author,
       author_role: post.author_role,
@@ -176,6 +321,7 @@ export default function BlogAdmin() {
       read_minutes: post.read_minutes,
       status: post.status as "draft" | "published",
     });
+    editor?.commands.setContent(html);
     setImageMode(post.cover_image ? "url" : "gradient");
     setPreviewImg(post.cover_image ?? "");
     setShowForm(true);
@@ -193,7 +339,7 @@ export default function BlogAdmin() {
     setSaving(true);
     const payload = {
       ...form,
-      content: form.content,
+      content: editor?.getHTML() || form.content,
       cover_image:
         imageMode === "url" && form.cover_image ? form.cover_image : null,
       tags: JSON.stringify(
@@ -245,6 +391,47 @@ export default function BlogAdmin() {
     await load();
   }
 
+  const setFontSize = (size: string) => {
+    if (!size || !editor) return;
+    editor.chain().focus().setFontSize(size).run();
+  };
+
+  const setHeading = (value: string) => {
+    if (!editor) return;
+    if (value === "paragraph") {
+      editor.chain().focus().setParagraph().run();
+      return;
+    }
+    const level = Number(value) as 1 | 2 | 3;
+    editor.chain().focus().setHeading({ level }).run();
+  };
+
+  const runEditorCommand = (fn: () => boolean | void) => {
+    if (!editor) return;
+    editor.chain().focus();
+    fn();
+  };
+
+  const insertLink = () => {
+    if (!editor) return;
+    const previous = editor.getAttributes("link").href as string | undefined;
+    const url = window.prompt("Enter link URL", previous || "https://");
+    if (url === null) return;
+    if (url === "") {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  };
+
+  const currentHeading = editor?.isActive("heading", { level: 1 })
+    ? "1"
+    : editor?.isActive("heading", { level: 2 })
+      ? "2"
+      : editor?.isActive("heading", { level: 3 })
+        ? "3"
+        : "paragraph";
+
   const filtered =
     filterStatus === "all"
       ? posts
@@ -252,6 +439,83 @@ export default function BlogAdmin() {
 
   return (
     <div className="max-w-screen-xl mx-auto">
+      <style>{`
+        .blog-editor-select {
+          height: 28px;
+          padding: 0 8px;
+          font-size: 12px;
+          border-radius: 6px;
+          border: 1px solid rgb(226 232 240);
+          background: white;
+          color: rgb(51 65 85);
+        }
+        .blog-editor-content .ProseMirror {
+          min-height: 220px;
+          padding: 16px;
+          outline: none;
+          font-size: 14px;
+          color: rgb(30 41 59);
+        }
+        .blog-editor-content .ProseMirror img,
+        .blog-editor-content img {
+          max-width: min(100%, 420px) !important;
+          max-height: 240px !important;
+          width: auto !important;
+          height: auto !important;
+          object-fit: contain !important;
+          border-radius: 8px;
+          display: block;
+          margin: 0.75rem 0;
+        }
+        .blog-editor-content .ProseMirror ul {
+          list-style-type: disc !important;
+          list-style-position: outside !important;
+          padding-left: 1.5rem !important;
+          margin: 0.5rem 0 0.85rem !important;
+        }
+        .blog-editor-content .ProseMirror ol {
+          list-style-type: decimal !important;
+          list-style-position: outside !important;
+          padding-left: 1.5rem !important;
+          margin: 0.5rem 0 0.85rem !important;
+        }
+        .blog-editor-content .ProseMirror li {
+          display: list-item !important;
+          margin: 0.25rem 0;
+        }
+        .blog-editor-content .ProseMirror li p {
+          margin: 0;
+        }
+        .blog-editor-content .ProseMirror blockquote {
+          border-left: 3px solid rgb(203 213 225) !important;
+          margin: 0.75rem 0 !important;
+          padding-left: 0.9rem !important;
+          color: rgb(71 85 105);
+        }
+        .blog-editor-content .ProseMirror h1 {
+          font-size: 1.75rem !important;
+          font-weight: 700;
+          line-height: 1.25;
+          margin: 0.75rem 0;
+        }
+        .blog-editor-content .ProseMirror h2 {
+          font-size: 1.4rem !important;
+          font-weight: 650;
+          line-height: 1.3;
+          margin: 0.75rem 0;
+        }
+        .blog-editor-content .ProseMirror h3 {
+          font-size: 1.15rem !important;
+          font-weight: 650;
+          line-height: 1.35;
+          margin: 0.75rem 0;
+        }
+        .blog-editor-content .ProseMirror a.blog-editor-link {
+          color: rgb(37 99 235);
+          text-decoration: underline;
+        }
+      `}</style>
+
       <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Blog</h1>
@@ -477,17 +741,225 @@ export default function BlogAdmin() {
                 </div>
               </div>
 
-              {/* JSON Content Builder */}
+              {/* WYSIWYG Content editor */}
               <div>
                 <Label className="text-xs font-medium text-slate-600 mb-2 block">
-                  Content (JSON Blocks) *
+                  Content *
                 </Label>
-                <JsonContentBuilder
-                  value={form.content}
-                  onChange={(blocks) =>
-                    setForm((f) => ({ ...f, content: blocks }))
-                  }
-                />
+
+                {wasLegacyContent && (
+                  <div className="mb-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                    This post was created with the old block editor. It's been
+                    converted for editing here — nothing is changed in the
+                    database until you click Save/Update below.
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="flex flex-wrap items-center gap-1.5 p-2 border-b border-slate-200 bg-slate-50">
+                    <ToolbarBtn
+                      title="Paragraph"
+                      active={currentHeading === "paragraph"}
+                      onClick={() => setHeading("paragraph")}
+                    >
+                      P
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      title="Heading 1"
+                      active={currentHeading === "1"}
+                      onClick={() => setHeading("1")}
+                    >
+                      H1
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      title="Heading 2"
+                      active={currentHeading === "2"}
+                      onClick={() => setHeading("2")}
+                    >
+                      H2
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      title="Heading 3"
+                      active={currentHeading === "3"}
+                      onClick={() => setHeading("3")}
+                    >
+                      H3
+                    </ToolbarBtn>
+
+                    <select
+                      className="blog-editor-select"
+                      defaultValue=""
+                      onChange={(e) => {
+                        setFontSize(e.target.value);
+                        e.target.value = "";
+                      }}
+                      title="Font size"
+                    >
+                      <option value="" disabled>
+                        Size
+                      </option>
+                      {FONT_SIZES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      className="blog-editor-select"
+                      defaultValue=""
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (!value) {
+                          editor?.chain().focus().unsetColor().run();
+                        } else {
+                          editor?.chain().focus().setColor(value).run();
+                        }
+                        e.target.value = "";
+                      }}
+                      title="Text color"
+                    >
+                      <option value="" disabled>
+                        Color
+                      </option>
+                      {TEXT_COLORS.map((c) => (
+                        <option key={c.label} value={c.value}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="w-px h-5 bg-slate-200 mx-1" />
+
+                    <ToolbarBtn
+                      title="Bold"
+                      active={editor?.isActive("bold")}
+                      onClick={() =>
+                        runEditorCommand(() =>
+                          editor!.chain().focus().toggleBold().run(),
+                        )
+                      }
+                    >
+                      <BoldIcon className="h-3.5 w-3.5" />
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      title="Italic"
+                      active={editor?.isActive("italic")}
+                      onClick={() =>
+                        runEditorCommand(() =>
+                          editor!.chain().focus().toggleItalic().run(),
+                        )
+                      }
+                    >
+                      <ItalicIcon className="h-3.5 w-3.5" />
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      title="Underline"
+                      active={editor?.isActive("underline")}
+                      onClick={() =>
+                        runEditorCommand(() =>
+                          (editor!.chain().focus() as any)
+                            .toggleUnderline()
+                            .run(),
+                        )
+                      }
+                    >
+                      <UnderlineIcon className="h-3.5 w-3.5" />
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      title="Strikethrough"
+                      active={editor?.isActive("strike")}
+                      onClick={() =>
+                        runEditorCommand(() =>
+                          editor!.chain().focus().toggleStrike().run(),
+                        )
+                      }
+                    >
+                      <Strikethrough className="h-3.5 w-3.5" />
+                    </ToolbarBtn>
+
+                    <div className="w-px h-5 bg-slate-200 mx-1" />
+
+                    <ToolbarBtn
+                      title="Bullet list"
+                      active={editor?.isActive("bulletList")}
+                      onClick={() =>
+                        runEditorCommand(() =>
+                          editor!.chain().focus().toggleBulletList().run(),
+                        )
+                      }
+                    >
+                      <List className="h-3.5 w-3.5" />
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      title="Numbered list"
+                      active={editor?.isActive("orderedList")}
+                      onClick={() =>
+                        runEditorCommand(() =>
+                          editor!.chain().focus().toggleOrderedList().run(),
+                        )
+                      }
+                    >
+                      <ListOrdered className="h-3.5 w-3.5" />
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      title="Quote"
+                      active={editor?.isActive("blockquote")}
+                      onClick={() =>
+                        runEditorCommand(() =>
+                          editor!.chain().focus().toggleBlockquote().run(),
+                        )
+                      }
+                    >
+                      <Quote className="h-3.5 w-3.5" />
+                    </ToolbarBtn>
+                    <ToolbarBtn title="Insert link" onClick={insertLink}>
+                      <Link2 className="h-3.5 w-3.5" />
+                    </ToolbarBtn>
+                    <ToolbarBtn
+                      title="Insert image"
+                      onClick={() => setShowEditorImagePicker((v) => !v)}
+                    >
+                      <ImageIcon className="h-3.5 w-3.5" />
+                    </ToolbarBtn>
+
+                    <div className="w-px h-5 bg-slate-200 mx-1" />
+
+                    <ToolbarBtn
+                      title="Undo"
+                      onClick={() => editor?.chain().focus().undo().run()}
+                    >
+                      <Undo2 className="h-3.5 w-3.5" />
+                    </ToolbarBtn>
+                  </div>
+
+                  {showEditorImagePicker && (
+                    <div className="p-3 border-b border-slate-200 bg-slate-50">
+                      <ImageUpload
+                        contentType="blog"
+                        onUploadComplete={(url) => {
+                          editor?.chain().focus().setImage({ src: url }).run();
+                          setShowEditorImagePicker(false);
+                        }}
+                        onUploadError={(error) => setUploadError(error)}
+                        label="Insert Image"
+                        description="Upload an image to insert into the post body"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowEditorImagePicker(false)}
+                        className="text-xs text-slate-400 hover:text-slate-600 mt-2"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+
+                  <EditorContent
+                    editor={editor}
+                    className="blog-editor-content"
+                  />
+                </div>
               </div>
 
               {/* Meta fields */}
