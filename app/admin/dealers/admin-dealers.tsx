@@ -29,6 +29,13 @@ import { useRouter } from "next/navigation";
 
 const AREA_OPTIONS = ["Central", "North", "South", "East", "West"];
 
+interface CarOption {
+  id: number;
+  name: string;
+  brand: string;
+  model: string;
+}
+
 interface DealerDB {
   id: number;
   slug: string;
@@ -74,12 +81,14 @@ interface DealerForm {
   status: "active" | "inactive";
   latitude: string;
   longitude: string;
+  car_ids: number[];
 }
 interface Props {
   initialDealers: DealerDB[];
   total: number;
   page: number;
   limit: number;
+  carOptions: CarOption[];
 }
 
 const EMPTY_FORM: DealerForm = {
@@ -101,6 +110,7 @@ const EMPTY_FORM: DealerForm = {
   status: "active",
   latitude: "",
   longitude: "",
+  car_ids: [],
 };
 
 function toForm(d: DealerDB): DealerForm {
@@ -123,6 +133,7 @@ function toForm(d: DealerDB): DealerForm {
     status: d.status,
     latitude: d.latitude != null ? String(d.latitude) : "",
     longitude: d.longitude != null ? String(d.longitude) : "",
+    car_ids: Array.isArray(d.car_ids) ? d.car_ids.map(Number) : [],
   };
 }
 
@@ -135,7 +146,7 @@ function toPayload(f: DealerForm) {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
-    car_ids: [],
+    car_ids: f.car_ids,
     area: f.area,
     address: f.address.trim(),
     phone: f.phone.trim(),
@@ -189,10 +200,12 @@ const inputCls =
 
 function DealerModal({
   dealer,
+  carOptions,
   onClose,
   onSaved,
 }: {
   dealer: DealerDB | null;
+  carOptions: CarOption[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -203,8 +216,17 @@ function DealerModal({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  function set(field: keyof DealerForm, value: string) {
+  function set(field: keyof Omit<DealerForm, "car_ids">, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function toggleCar(carId: number) {
+    setForm((prev) => ({
+      ...prev,
+      car_ids: prev.car_ids.includes(carId)
+        ? prev.car_ids.filter((id) => id !== carId)
+        : [...prev.car_ids, carId],
+    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -464,6 +486,29 @@ function DealerModal({
             />
           </Field>
 
+          <Field label="Cars sold by this dealer">
+            {carOptions.length === 0 ? (
+              <p className="text-xs text-slate-400">No cars available yet.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+                {carOptions.map((car) => (
+                  <button
+                    key={car.id}
+                    type="button"
+                    onClick={() => toggleCar(car.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      form.car_ids.includes(car.id)
+                        ? "bg-emerald-600 text-white border-emerald-600"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    {car.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </Field>
+
           {error && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
               {error}
@@ -616,6 +661,7 @@ export default function AdminDealersClient({
   total,
   page,
   limit,
+  carOptions,
 }: Props) {
   const router = useRouter();
   const [dealers, setDealers] = useState(initialDealers);
@@ -934,6 +980,7 @@ export default function AdminDealersClient({
       {(modal === "add" || modal === "edit") && (
         <DealerModal
           dealer={modal === "edit" ? editing : null}
+          carOptions={carOptions}
           onClose={closeModal}
           onSaved={load}
         />
