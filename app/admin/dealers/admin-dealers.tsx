@@ -26,6 +26,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ImageUpload } from "@/components/FileUpload";
 
 const AREA_OPTIONS = ["Central", "North", "South", "East", "West"];
 
@@ -58,6 +59,7 @@ interface DealerDB {
   role: "admin" | "dealer";
   latitude: number | null;
   longitude: number | null;
+  logo_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -82,6 +84,7 @@ interface DealerForm {
   latitude: string;
   longitude: string;
   car_ids: number[];
+  logo_url: string;
 }
 interface Props {
   initialDealers: DealerDB[];
@@ -111,6 +114,7 @@ const EMPTY_FORM: DealerForm = {
   latitude: "",
   longitude: "",
   car_ids: [],
+  logo_url: "",
 };
 
 function toForm(d: DealerDB): DealerForm {
@@ -134,6 +138,7 @@ function toForm(d: DealerDB): DealerForm {
     latitude: d.latitude != null ? String(d.latitude) : "",
     longitude: d.longitude != null ? String(d.longitude) : "",
     car_ids: Array.isArray(d.car_ids) ? d.car_ids.map(Number) : [],
+    logo_url: d.logo_url ?? "",
   };
 }
 
@@ -173,6 +178,7 @@ function toPayload(f: DealerForm) {
       f.longitude.trim() && !isNaN(parseFloat(f.longitude))
         ? parseFloat(f.longitude)
         : null,
+    logo_url: f.logo_url.trim() || null,
   };
 }
 
@@ -289,6 +295,32 @@ function DealerModal({
           onSubmit={handleSubmit}
           className="overflow-y-auto flex-1 px-6 py-5 space-y-4"
         >
+          <Field label="Dealer Logo">
+            {form.logo_url ? (
+              <div className="relative rounded-xl overflow-hidden bg-slate-100 h-24 w-24 mb-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={form.logo_url}
+                  alt="Logo preview"
+                  className="w-full h-full object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={() => set("logo_url", "")}
+                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : null}
+            <ImageUpload
+              contentType="dealers"
+              onUploadComplete={(url) => set("logo_url", url)}
+              label="Upload logo"
+              description="PNG, JPG, or WebP. Shown on the charging map pin and dealer listings."
+            />
+          </Field>
+
           <div className="grid grid-cols-2 gap-4">
             <Field label="Dealer Name *">
               <input
