@@ -49,6 +49,8 @@ interface DealerDB {
   certifications: string[];
   status: "active" | "inactive";
   role: "admin" | "dealer";
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -70,6 +72,8 @@ interface DealerForm {
   highlights: string;
   certifications: string;
   status: "active" | "inactive";
+  latitude: string;
+  longitude: string;
 }
 interface Props {
   initialDealers: DealerDB[];
@@ -95,6 +99,8 @@ const EMPTY_FORM: DealerForm = {
   highlights: "",
   certifications: "",
   status: "active",
+  latitude: "",
+  longitude: "",
 };
 
 function toForm(d: DealerDB): DealerForm {
@@ -115,6 +121,8 @@ function toForm(d: DealerDB): DealerForm {
     highlights: d.highlights.join("\n"),
     certifications: d.certifications.join(", "),
     status: d.status,
+    latitude: d.latitude != null ? String(d.latitude) : "",
+    longitude: d.longitude != null ? String(d.longitude) : "",
   };
 }
 
@@ -146,6 +154,14 @@ function toPayload(f: DealerForm) {
       .map((s) => s.trim())
       .filter(Boolean),
     status: f.status,
+    latitude:
+      f.latitude.trim() && !isNaN(parseFloat(f.latitude))
+        ? parseFloat(f.latitude)
+        : null,
+    longitude:
+      f.longitude.trim() && !isNaN(parseFloat(f.longitude))
+        ? parseFloat(f.longitude)
+        : null,
   };
 }
 
@@ -319,6 +335,33 @@ function DealerModal({
               placeholder="e.g. 1 Toa Payoh Industrial Park"
             />
           </Field>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Latitude">
+              <input
+                className={inputCls}
+                type="number"
+                step="0.0001"
+                value={form.latitude}
+                onChange={(e) => set("latitude", e.target.value)}
+                placeholder="e.g. 1.3040"
+              />
+            </Field>
+            <Field label="Longitude">
+              <input
+                className={inputCls}
+                type="number"
+                step="0.0001"
+                value={form.longitude}
+                onChange={(e) => set("longitude", e.target.value)}
+                placeholder="e.g. 103.8318"
+              />
+            </Field>
+          </div>
+          <p className="text-xs text-slate-400 -mt-2">
+            Optional — used to show this dealer on the public charging map.
+            Leave blank if unknown.
+          </p>
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="Phone">
