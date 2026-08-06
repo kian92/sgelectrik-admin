@@ -3,7 +3,18 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, X, Save, Loader2, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Save,
+  Loader2,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+} from "lucide-react";
+import { Pagination } from "@/components/Pagination";
 
 export interface CoeHistoryRow {
   id: number;
@@ -36,6 +47,8 @@ const EMPTY_FORM: RowForm = {
   cat_d: "",
   cat_e: "",
 };
+
+const PAGE_SIZE = 10;
 
 const inputCls =
   "w-full px-3 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400";
@@ -107,7 +120,7 @@ function ExerciseModal({
     }
     if (labelYearMismatch(form.exercise_label, form.exercise_date)) {
       setError(
-        `Exercise date (${form.exercise_date}) doesn't match the year in the label "${form.exercise_label.trim()}". Fix one of them before saving.`
+        `Exercise date (${form.exercise_date}) doesn't match the year in the label "${form.exercise_label.trim()}". Fix one of them before saving.`,
       );
       return;
     }
@@ -139,7 +152,10 @@ function ExerciseModal({
           <h2 className="text-lg font-semibold text-slate-900">
             {isEdit ? "Edit Exercise" : "Add Bidding Exercise"}
           </h2>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 transition-colors">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg hover:bg-slate-100 transition-colors"
+          >
             <X className="h-5 w-5 text-slate-500" />
           </button>
         </div>
@@ -147,7 +163,9 @@ function ExerciseModal({
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Exercise Date *</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Exercise Date *
+              </label>
               <input
                 type="date"
                 className={inputCls}
@@ -156,7 +174,9 @@ function ExerciseModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Label *</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">
+                Label *
+              </label>
               <input
                 className={inputCls}
                 value={form.exercise_label}
@@ -166,23 +186,27 @@ function ExerciseModal({
             </div>
           </div>
 
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">COE Prices (S$)</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            COE Prices (S$)
+          </p>
           <div className="grid grid-cols-5 gap-3">
-            {(["cat_a", "cat_b", "cat_c", "cat_d", "cat_e"] as const).map((cat) => (
-              <div key={cat}>
-                <label className="block text-xs font-medium text-slate-600 mb-1 text-center">
-                  Cat {cat.slice(-1).toUpperCase()}
-                </label>
-                <input
-                  type="number"
-                  className={inputCls + " text-center font-mono"}
-                  value={form[cat]}
-                  onChange={(e) => set(cat, e.target.value)}
-                  placeholder="0"
-                  min="0"
-                />
-              </div>
-            ))}
+            {(["cat_a", "cat_b", "cat_c", "cat_d", "cat_e"] as const).map(
+              (cat) => (
+                <div key={cat}>
+                  <label className="block text-xs font-medium text-slate-600 mb-1 text-center">
+                    Cat {cat.slice(-1).toUpperCase()}
+                  </label>
+                  <input
+                    type="number"
+                    className={inputCls + " text-center font-mono"}
+                    value={form[cat]}
+                    onChange={(e) => set(cat, e.target.value)}
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+              ),
+            )}
           </div>
 
           {error && (
@@ -201,7 +225,11 @@ function ExerciseModal({
             disabled={saving}
             className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
             {isEdit ? "Save Changes" : "Add Exercise"}
           </Button>
         </div>
@@ -212,20 +240,39 @@ function ExerciseModal({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type SortKey = "exercise_date" | "cat_a" | "cat_b" | "cat_c" | "cat_d" | "cat_e";
+type SortKey =
+  | "exercise_date"
+  | "cat_a"
+  | "cat_b"
+  | "cat_c"
+  | "cat_d"
+  | "cat_e";
 type SortDir = "asc" | "desc";
 
-function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
-  if (col !== sortKey) return <ChevronsUpDown className="h-3.5 w-3.5 text-slate-400" />;
-  return sortDir === "asc"
-    ? <ChevronUp className="h-3.5 w-3.5 text-slate-700" />
-    : <ChevronDown className="h-3.5 w-3.5 text-slate-700" />;
+function SortIcon({
+  col,
+  sortKey,
+  sortDir,
+}: {
+  col: SortKey;
+  sortKey: SortKey;
+  sortDir: SortDir;
+}) {
+  if (col !== sortKey)
+    return <ChevronsUpDown className="h-3.5 w-3.5 text-slate-400" />;
+  return sortDir === "asc" ? (
+    <ChevronUp className="h-3.5 w-3.5 text-slate-700" />
+  ) : (
+    <ChevronDown className="h-3.5 w-3.5 text-slate-700" />
+  );
 }
 
 export default function CoeHistoryClient({
   initialRows,
+  initialPage,
 }: {
   initialRows: CoeHistoryRow[];
+  initialPage: number;
 }) {
   const router = useRouter();
   const [rows, setRows] = useState<CoeHistoryRow[]>(initialRows);
@@ -233,8 +280,16 @@ export default function CoeHistoryClient({
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
   const [editing, setEditing] = useState<CoeHistoryRow | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<CoeHistoryRow | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<CoeHistoryRow | null>(
+    null,
+  );
   const [deleting, setDeleting] = useState(false);
+  const [page, setPage] = useState(initialPage);
+
+  const goToPage = (p: number) => {
+    setPage(p);
+    router.push(`?page=${p}`, { scroll: false });
+  };
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
@@ -243,6 +298,7 @@ export default function CoeHistoryClient({
       setSortKey(key);
       setSortDir("desc");
     }
+    goToPage(1); // resorting jumps back to page 1
   }
 
   const sortedRows = useMemo(() => {
@@ -254,6 +310,13 @@ export default function CoeHistoryClient({
       return 0;
     });
   }, [rows, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginatedRows = sortedRows.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
   function openAdd() {
     setEditing(null);
@@ -309,38 +372,62 @@ export default function CoeHistoryClient({
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="text-left px-4 py-3 font-medium text-slate-600">Exercise</th>
+              <th className="text-left px-4 py-3 font-medium text-slate-600">
+                Exercise
+              </th>
               <th className="text-left px-4 py-3">
                 <button
                   onClick={() => toggleSort("exercise_date")}
                   className="flex items-center gap-1 font-medium text-slate-600 hover:text-slate-900"
                 >
-                  Date <SortIcon col="exercise_date" sortKey={sortKey} sortDir={sortDir} />
+                  Date{" "}
+                  <SortIcon
+                    col="exercise_date"
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                  />
                 </button>
               </th>
-              {(["cat_a", "cat_b", "cat_c", "cat_d", "cat_e"] as SortKey[]).map((cat) => (
-                <th key={cat} className="text-right px-4 py-3">
-                  <button
-                    onClick={() => toggleSort(cat)}
-                    className="flex items-center gap-1 font-medium text-slate-600 hover:text-slate-900 ml-auto"
-                  >
-                    Cat {cat.slice(-1).toUpperCase()} <SortIcon col={cat} sortKey={sortKey} sortDir={sortDir} />
-                  </button>
-                </th>
-              ))}
+              {(["cat_a", "cat_b", "cat_c", "cat_d", "cat_e"] as SortKey[]).map(
+                (cat) => (
+                  <th key={cat} className="text-right px-4 py-3">
+                    <button
+                      onClick={() => toggleSort(cat)}
+                      className="flex items-center gap-1 font-medium text-slate-600 hover:text-slate-900 ml-auto"
+                    >
+                      Cat {cat.slice(-1).toUpperCase()}{" "}
+                      <SortIcon col={cat} sortKey={sortKey} sortDir={sortDir} />
+                    </button>
+                  </th>
+                ),
+              )}
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {sortedRows.map((row) => (
+            {paginatedRows.map((row) => (
               <tr key={row.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-4 py-3 font-medium text-slate-900">{row.exercise_label}</td>
-                <td className="px-4 py-3 text-slate-500">{fmtDate(row.exercise_date)}</td>
-                <td className="px-4 py-3 text-right font-mono text-slate-700">{fmt(row.cat_a)}</td>
-                <td className="px-4 py-3 text-right font-mono text-slate-700">{fmt(row.cat_b)}</td>
-                <td className="px-4 py-3 text-right font-mono text-slate-700">{fmt(row.cat_c)}</td>
-                <td className="px-4 py-3 text-right font-mono text-slate-700">{fmt(row.cat_d)}</td>
-                <td className="px-4 py-3 text-right font-mono text-slate-700">{fmt(row.cat_e)}</td>
+                <td className="px-4 py-3 font-medium text-slate-900">
+                  {row.exercise_label}
+                </td>
+                <td className="px-4 py-3 text-slate-500">
+                  {fmtDate(row.exercise_date)}
+                </td>
+                <td className="px-4 py-3 text-right font-mono text-slate-700">
+                  {fmt(row.cat_a)}
+                </td>
+                <td className="px-4 py-3 text-right font-mono text-slate-700">
+                  {fmt(row.cat_b)}
+                </td>
+                <td className="px-4 py-3 text-right font-mono text-slate-700">
+                  {fmt(row.cat_c)}
+                </td>
+                <td className="px-4 py-3 text-right font-mono text-slate-700">
+                  {fmt(row.cat_d)}
+                </td>
+                <td className="px-4 py-3 text-right font-mono text-slate-700">
+                  {fmt(row.cat_e)}
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
                     <Button
@@ -369,10 +456,20 @@ export default function CoeHistoryClient({
         {rows.length === 0 && (
           <div className="text-center py-16 text-slate-400">
             <p className="font-medium">No exercises recorded yet</p>
-            <p className="text-sm mt-1">Click &quot;Add Exercise&quot; to add the first one</p>
+            <p className="text-sm mt-1">
+              Click &quot;Add Exercise&quot; to add the first one
+            </p>
           </div>
         )}
       </div>
+
+      {rows.length > 0 && (
+        <Pagination
+          page={safePage}
+          totalPages={totalPages}
+          onPageChange={goToPage}
+        />
+      )}
 
       {(modal === "add" || modal === "edit") && (
         <ExerciseModal
@@ -385,12 +482,18 @@ export default function CoeHistoryClient({
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Delete Exercise?</h3>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">
+              Delete Exercise?
+            </h3>
             <p className="text-sm text-slate-500 mb-6">
-              Are you sure you want to delete <strong>{confirmDelete.exercise_label}</strong>? This cannot be undone.
+              Are you sure you want to delete{" "}
+              <strong>{confirmDelete.exercise_label}</strong>? This cannot be
+              undone.
             </p>
             <div className="flex gap-3 justify-end">
-              <Button variant="outline" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setConfirmDelete(null)}>
+                Cancel
+              </Button>
               <Button
                 variant="destructive"
                 disabled={deleting}

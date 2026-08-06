@@ -7,7 +7,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function CoeHistoryPage() {
+export default async function CoeHistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const { data, error } = await supabaseServer
     .from("coe_history")
     .select("*")
@@ -15,5 +19,12 @@ export default async function CoeHistoryPage() {
 
   if (error) throw new Error(error.message);
 
-  return <CoeHistoryClient initialRows={data || []} />;
+  const params = await searchParams;
+
+  return (
+    <CoeHistoryClient
+      initialRows={data || []}
+      initialPage={Number(params.page || 1)}
+    />
+  );
 }

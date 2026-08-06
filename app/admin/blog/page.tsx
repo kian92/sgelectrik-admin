@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, Suspense } from "react";
 import { format } from "date-fns";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyleKit } from "@tiptap/extension-text-style";
@@ -31,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { ImageUpload } from "@/components/FileUpload";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Pagination } from "@/components/Pagination";
 
 interface BlogPost {
   id: number;
@@ -81,6 +83,8 @@ const TEXT_COLORS = [
   { label: "Blue", value: "#2563eb" },
   { label: "Purple", value: "#9333ea" },
 ];
+
+const PAGE_SIZE = 8;
 
 const EMPTY_FORM: {
   title: string;
@@ -209,7 +213,10 @@ const ToolbarBtn = ({
   </button>
 );
 
-export default function BlogAdmin() {
+function BlogAdminInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -220,6 +227,9 @@ export default function BlogAdmin() {
   const [filterStatus, setFilterStatus] = useState<
     "all" | "published" | "draft"
   >("all");
+  const [page, setPage] = useState(
+    Math.max(1, Number(searchParams.get("page") || 1)),
+  );
   const [imageMode, setImageMode] = useState<"gradient" | "url">("gradient");
   const [previewImg, setPreviewImg] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -271,6 +281,16 @@ export default function BlogAdmin() {
   useEffect(() => {
     load();
   }, []);
+
+  const goToPage = (p: number) => {
+    setPage(p);
+    router.push(`?page=${p}`, { scroll: false });
+  };
+
+  const changeFilter = (f: "all" | "published" | "draft") => {
+    setFilterStatus(f);
+    goToPage(1);
+  };
 
   function openNew() {
     setEditing(null);
@@ -436,6 +456,13 @@ export default function BlogAdmin() {
     filterStatus === "all"
       ? posts
       : posts.filter((p) => p.status === filterStatus);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
   return (
     <div className="max-w-screen-xl mx-auto">
@@ -1065,7 +1092,7 @@ export default function BlogAdmin() {
         {(["all", "published", "draft"] as const).map((f) => (
           <button
             key={f}
-            onClick={() => setFilterStatus(f)}
+            onClick={() => changeFilter(f)}
             className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
               filterStatus === f
                 ? "bg-slate-900 text-white border-slate-900"
@@ -1092,135 +1119,151 @@ export default function BlogAdmin() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((post) => {
-            const tags: string[] = (() => {
-              try {
-                return JSON.parse(post.tags);
-              } catch {
-                return [];
-              }
-            })();
-            return (
-              <Card
-                key={post.id}
-                className={`border-0 shadow-sm hover:shadow-md transition-shadow ${
-                  editing?.id === post.id && showForm
-                    ? "ring-2 ring-emerald-400"
-                    : ""
-                }`}
-              >
-                <CardContent className="p-4 flex items-start gap-4">
-                  {/* Cover thumbnail */}
-                  <div className="flex-shrink-0 h-14 w-24 rounded-xl overflow-hidden">
-                    <div className="flex-shrink-0 h-14 w-24 rounded-xl overflow-hidden bg-slate-100">
-                      {post.cover_image ? (
-                        <img
-                          src={post.cover_image}
-                          alt={post.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
+        <>
+          <div className="space-y-3">
+            {paginated.map((post) => {
+              const tags: string[] = (() => {
+                try {
+                  return JSON.parse(post.tags);
+                } catch {
+                  return [];
+                }
+              })();
+              return (
+                <Card
+                  key={post.id}
+                  className={`border-0 shadow-sm hover:shadow-md transition-shadow ${
+                    editing?.id === post.id && showForm
+                      ? "ring-2 ring-emerald-400"
+                      : ""
+                  }`}
+                >
+                  <CardContent className="p-4 flex items-start gap-4">
+                    {/* Cover thumbnail */}
+                    <div className="flex-shrink-0 h-14 w-24 rounded-xl overflow-hidden">
+                      <div className="flex-shrink-0 h-14 w-24 rounded-xl overflow-hidden bg-slate-100">
+                        {post.cover_image ? (
+                          <img
+                            src={post.cover_image}
+                            alt={post.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
 
-                            const fallback = e.currentTarget
-                              .nextElementSibling as HTMLElement;
+                              const fallback = e.currentTarget
+                                .nextElementSibling as HTMLElement;
 
-                            if (fallback) {
-                              fallback.style.display = "block";
-                            }
-                          }}
+                              if (fallback) {
+                                fallback.style.display = "block";
+                              }
+                            }}
+                          />
+                        ) : null}
+
+                        <div
+                          className={`w-full h-full bg-gradient-to-r ${post.cover_gradient} ${
+                            post.cover_image ? "hidden" : "block"
+                          }`}
                         />
-                      ) : null}
-
-                      <div
-                        className={`w-full h-full bg-gradient-to-r ${post.cover_gradient} ${
-                          post.cover_image ? "hidden" : "block"
-                        }`}
-                      />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <h3 className="font-semibold text-slate-900 text-sm leading-tight">
-                        {post.title}
-                      </h3>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
-                          post.status === "published"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-slate-100 text-slate-600 border-slate-200"
-                        }`}
-                      >
-                        {post.status === "published" ? "Published" : "Draft"}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 line-clamp-1 mb-1.5">
-                      {post.excerpt}
-                    </p>
-                    <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
-                      <span className="font-medium text-slate-600">
-                        {post.category}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {post.read_minutes} min
-                      </span>
-                      {post.published_at && (
-                        <span>
-                          {format(new Date(post.published_at), "d MMM yyyy")}
-                        </span>
-                      )}
-                      {tags.slice(0, 3).map((t: string) => (
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <h3 className="font-semibold text-slate-900 text-sm leading-tight">
+                          {post.title}
+                        </h3>
                         <span
-                          key={t}
-                          className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded"
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
+                            post.status === "published"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-slate-100 text-slate-600 border-slate-200"
+                          }`}
                         >
-                          {t}
+                          {post.status === "published" ? "Published" : "Draft"}
                         </span>
-                      ))}
+                      </div>
+                      <p className="text-xs text-slate-500 line-clamp-1 mb-1.5">
+                        {post.excerpt}
+                      </p>
+                      <div className="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
+                        <span className="font-medium text-slate-600">
+                          {post.category}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {post.read_minutes} min
+                        </span>
+                        {post.published_at && (
+                          <span>
+                            {format(new Date(post.published_at), "d MMM yyyy")}
+                          </span>
+                        )}
+                        {tags.slice(0, 3).map((t: string) => (
+                          <span
+                            key={t}
+                            className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => toggleStatus(post)}
-                      title={
-                        post.status === "published" ? "Unpublish" : "Publish"
-                      }
-                      className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-                    >
-                      {post.status === "published" ? (
-                        <EyeOff className="h-3.5 w-3.5" />
-                      ) : (
-                        <Eye className="h-3.5 w-3.5" />
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openEdit(post)}
-                      className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-                      title="Edit"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(post.id)}
-                      disabled={deleting === post.id}
-                      className="h-7 w-7 flex items-center justify-center rounded-md text-slate-300 hover:bg-red-50 hover:text-red-500 transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => toggleStatus(post)}
+                        title={
+                          post.status === "published" ? "Unpublish" : "Publish"
+                        }
+                        className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                      >
+                        {post.status === "published" ? (
+                          <EyeOff className="h-3.5 w-3.5" />
+                        ) : (
+                          <Eye className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEdit(post)}
+                        className="h-7 w-7 flex items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(post.id)}
+                        disabled={deleting === post.id}
+                        className="h-7 w-7 flex items-center justify-center rounded-md text-slate-300 hover:bg-red-50 hover:text-red-500 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <Pagination
+            page={safePage}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+          />
+        </>
       )}
     </div>
+  );
+}
+
+export default function BlogAdmin() {
+  return (
+    <Suspense fallback={null}>
+      <BlogAdminInner />
+    </Suspense>
   );
 }

@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Pagination } from "@/components/Pagination";
 import { format } from "date-fns";
 import {
   CheckCircle2,
@@ -71,13 +73,21 @@ const FILTER_LABELS: Record<FilterStatus, string> = {
 
 const FILTERS: FilterStatus[] = ["all", "pending", "active", "inactive"];
 
+const LIMIT = 6; // rows per page
+
 // ── Component ──────────────────────────────────────────────────────────────────
-export default function AdminClaims() {
+function AdminClaimInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [dealers, setDealers] = useState<Dealer[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [expanded, setExpanded] = useState<number | null>(null);
   const [updating, setUpdating] = useState<number | null>(null);
+  const [page, setPage] = useState(
+    Math.max(1, Number(searchParams.get("page") || 1)),
+  );
 
   const load = async () => {
     try {
@@ -115,9 +125,23 @@ export default function AdminClaims() {
     await load();
   };
 
+  const goToPage = (p: number) => {
+    setPage(p);
+    router.push(`?page=${p}`, { scroll: false });
+  };
+
+  const changeFilter = (f: FilterStatus) => {
+    setFilter(f);
+    goToPage(1); // reset to page 1 whenever the filter changes
+  };
+
   // ── Derived ────────────────────────────────────────────────────────────────
   const filtered =
     filter === "all" ? dealers : dealers.filter((d) => d.status === filter);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / LIMIT));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * LIMIT, safePage * LIMIT);
 
   const counts: Record<FilterStatus, number> = {
     all: dealers.length,
@@ -141,7 +165,7 @@ export default function AdminClaims() {
         {FILTERS.map((f) => (
           <button
             key={f}
-            onClick={() => setFilter(f)}
+            onClick={() => changeFilter(f)}
             className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
               filter === f
                 ? "bg-slate-900 text-white border-slate-900"
@@ -168,205 +192,226 @@ export default function AdminClaims() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((dealer) => {
-            const {
-              label,
-              color,
-              icon: StatusIcon,
-            } = STATUS_CONFIG[dealer.status];
-            const isExpanded = expanded === dealer.id;
+        <>
+          <div className="space-y-3">
+            {paginated.map((dealer) => {
+              const {
+                label,
+                color,
+                icon: StatusIcon,
+              } = STATUS_CONFIG[dealer.status];
+              const isExpanded = expanded === dealer.id;
 
-            return (
-              <Card
-                key={dealer.id}
-                className="border-0 shadow-sm overflow-hidden"
-              >
-                <CardContent className="p-0">
-                  {/* Row */}
-                  <div className="p-5 flex items-start gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
-                      <Building2 className="h-5 w-5 text-slate-500" />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <p className="font-semibold text-slate-900">
-                          {dealer.name}
-                        </p>
-                        <span
-                          className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border ${color}`}
-                        >
-                          <StatusIcon className="h-3 w-3" /> {label}
-                        </span>
-                        <span className="text-xs text-slate-400 capitalize">
-                          {dealer.role}
-                        </span>
+              return (
+                <Card
+                  key={dealer.id}
+                  className="border-0 shadow-sm overflow-hidden"
+                >
+                  <CardContent className="p-0">
+                    {/* Row */}
+                    <div className="p-5 flex items-start gap-4">
+                      <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
+                        <Building2 className="h-5 w-5 text-slate-500" />
                       </div>
-                      <div className="flex items-center gap-4 mt-1 text-xs text-slate-500 flex-wrap">
-                        {dealer.email && (
-                          <span className="flex items-center gap-1">
-                            <Mail className="h-3 w-3" /> {dealer.email}
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <p className="font-semibold text-slate-900">
+                            {dealer.name}
+                          </p>
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border ${color}`}
+                          >
+                            <StatusIcon className="h-3 w-3" /> {label}
                           </span>
-                        )}
-                        {dealer.phone && (
-                          <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" /> {dealer.phone}
+                          <span className="text-xs text-slate-400 capitalize">
+                            {dealer.role}
                           </span>
-                        )}
-                        {dealer.area && (
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" /> {dealer.area}
+                        </div>
+                        <div className="flex items-center gap-4 mt-1 text-xs text-slate-500 flex-wrap">
+                          {dealer.email && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="h-3 w-3" /> {dealer.email}
+                            </span>
+                          )}
+                          {dealer.phone && (
+                            <span className="flex items-center gap-1">
+                              <Phone className="h-3 w-3" /> {dealer.phone}
+                            </span>
+                          )}
+                          {dealer.area && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" /> {dealer.area}
+                            </span>
+                          )}
+                          <span>
+                            {format(new Date(dealer.created_at), "d MMM yyyy")}
                           </span>
-                        )}
-                        <span>
-                          {format(new Date(dealer.created_at), "d MMM yyyy")}
-                        </span>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Quick actions */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {dealer.status === "pending" && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
-                            disabled={updating === dealer.id}
-                            onClick={() => updateStatus(dealer.id, "active")}
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-700 border-red-200 hover:bg-red-50"
-                            disabled={updating === dealer.id}
-                            onClick={() => updateStatus(dealer.id, "inactive")}
-                          >
-                            <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
-                          </Button>
-                        </>
-                      )}
-                      <button
-                        onClick={() =>
-                          setExpanded(isExpanded ? null : dealer.id)
-                        }
-                        className="text-slate-400 hover:text-slate-600 p-1"
-                      >
-                        {isExpanded ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Expanded detail */}
-                  {isExpanded && (
-                    <div className="px-5 pb-5 border-t border-slate-100">
-                      <div className="grid sm:grid-cols-2 gap-4 mt-4 text-sm">
-                        {dealer.short_name && (
-                          <div>
-                            <p className="text-xs font-medium text-slate-500 mb-1">
-                              Short Name
-                            </p>
-                            <p className="text-slate-800">
-                              {dealer.short_name}
-                            </p>
-                          </div>
-                        )}
-                        {dealer.address && (
-                          <div>
-                            <p className="text-xs font-medium text-slate-500 mb-1">
-                              Address
-                            </p>
-                            <p className="text-slate-800">{dealer.address}</p>
-                          </div>
-                        )}
-                        {dealer.website && (
-                          <div>
-                            <p className="text-xs font-medium text-slate-500 mb-1">
-                              Website
-                            </p>
-                            <a
-                              href={dealer.website}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-emerald-600 hover:underline flex items-center gap-1"
+                      {/* Quick actions */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {dealer.status === "pending" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                              disabled={updating === dealer.id}
+                              onClick={() => updateStatus(dealer.id, "active")}
                             >
-                              <Globe className="h-3.5 w-3.5" /> {dealer.website}
-                            </a>
-                          </div>
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-700 border-red-200 hover:bg-red-50"
+                              disabled={updating === dealer.id}
+                              onClick={() =>
+                                updateStatus(dealer.id, "inactive")
+                              }
+                            >
+                              <XCircle className="h-3.5 w-3.5 mr-1" /> Reject
+                            </Button>
+                          </>
                         )}
-                        {dealer.brands && (
-                          <div>
-                            <p className="text-xs font-medium text-slate-500 mb-1">
-                              Brands
-                            </p>
-                            <p className="text-slate-800">
-                              {Array.isArray(dealer.brands)
-                                ? dealer.brands.join(", ")
-                                : dealer.brands}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Status actions */}
-                      <div className="flex items-center gap-2 mt-4">
-                        {dealer.status !== "pending" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={updating === dealer.id}
-                            onClick={() => updateStatus(dealer.id, "pending")}
-                          >
-                            Set Pending
-                          </Button>
-                        )}
-                        {dealer.status !== "active" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
-                            disabled={updating === dealer.id}
-                            onClick={() => updateStatus(dealer.id, "active")}
-                          >
-                            Approve
-                          </Button>
-                        )}
-                        {dealer.status !== "inactive" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-red-700 border-red-200 hover:bg-red-50"
-                            disabled={updating === dealer.id}
-                            onClick={() => updateStatus(dealer.id, "inactive")}
-                          >
-                            Reject
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-red-500 hover:text-red-700 ml-auto"
-                          onClick={() => deleteDealer(dealer.id)}
+                        <button
+                          onClick={() =>
+                            setExpanded(isExpanded ? null : dealer.id)
+                          }
+                          className="text-slate-400 hover:text-slate-600 p-1"
                         >
-                          Delete
-                        </Button>
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </button>
                       </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+
+                    {/* Expanded detail */}
+                    {isExpanded && (
+                      <div className="px-5 pb-5 border-t border-slate-100">
+                        <div className="grid sm:grid-cols-2 gap-4 mt-4 text-sm">
+                          {dealer.short_name && (
+                            <div>
+                              <p className="text-xs font-medium text-slate-500 mb-1">
+                                Short Name
+                              </p>
+                              <p className="text-slate-800">
+                                {dealer.short_name}
+                              </p>
+                            </div>
+                          )}
+                          {dealer.address && (
+                            <div>
+                              <p className="text-xs font-medium text-slate-500 mb-1">
+                                Address
+                              </p>
+                              <p className="text-slate-800">{dealer.address}</p>
+                            </div>
+                          )}
+                          {dealer.website && (
+                            <div>
+                              <p className="text-xs font-medium text-slate-500 mb-1">
+                                Website
+                              </p>
+                              <a
+                                href={dealer.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-emerald-600 hover:underline flex items-center gap-1"
+                              >
+                                <Globe className="h-3.5 w-3.5" />{" "}
+                                {dealer.website}
+                              </a>
+                            </div>
+                          )}
+                          {dealer.brands && (
+                            <div>
+                              <p className="text-xs font-medium text-slate-500 mb-1">
+                                Brands
+                              </p>
+                              <p className="text-slate-800">
+                                {Array.isArray(dealer.brands)
+                                  ? dealer.brands.join(", ")
+                                  : dealer.brands}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Status actions */}
+                        <div className="flex items-center gap-2 mt-4">
+                          {dealer.status !== "pending" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={updating === dealer.id}
+                              onClick={() => updateStatus(dealer.id, "pending")}
+                            >
+                              Set Pending
+                            </Button>
+                          )}
+                          {dealer.status !== "active" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+                              disabled={updating === dealer.id}
+                              onClick={() => updateStatus(dealer.id, "active")}
+                            >
+                              Approve
+                            </Button>
+                          )}
+                          {dealer.status !== "inactive" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-700 border-red-200 hover:bg-red-50"
+                              disabled={updating === dealer.id}
+                              onClick={() =>
+                                updateStatus(dealer.id, "inactive")
+                              }
+                            >
+                              Reject
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-500 hover:text-red-700 ml-auto"
+                            onClick={() => deleteDealer(dealer.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <Pagination
+            page={safePage}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+          />
+        </>
       )}
     </div>
+  );
+}
+
+export default function AdminClaims() {
+  return (
+    <Suspense fallback={null}>
+      <AdminClaimInner />
+    </Suspense>
   );
 }
