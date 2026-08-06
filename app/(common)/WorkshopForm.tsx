@@ -127,15 +127,12 @@ export default function WorkshopForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.name, autoSlug]);
 
-  // Dealer role: dealerId is always pre-filled — only admin needs to pick one
-  const isValid =
-    form.name.trim().length > 0 &&
-    form.slug.trim().length > 0 &&
-    form.dealerId.trim().length > 0;
+  // Dealer role: dealerId is always pre-filled. Admin may leave it unassigned.
+  const isValid = form.name.trim().length > 0 && form.slug.trim().length > 0;
 
   function buildPayload() {
     return {
-      dealer_id: Number(form.dealerId),
+      dealer_id: form.dealerId ? Number(form.dealerId) : null,
       name: form.name.trim(),
       slug: form.slug.trim(),
       type: form.type,
@@ -297,7 +294,7 @@ export default function WorkshopForm({
             {/* Dealer assignment — admin only */}
             {isAdmin && (
               <div className="space-y-1.5">
-                <Label>Assign to dealer *</Label>
+                <Label>Assign to dealer</Label>
                 <Select
                   value={form.dealerId || "__none__"}
                   onValueChange={(v) =>
@@ -305,10 +302,12 @@ export default function WorkshopForm({
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a dealer" />
+                    <SelectValue placeholder="No dealer" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">— Select dealer —</SelectItem>
+                    <SelectItem value="__none__">
+                      — No dealer / unassigned —
+                    </SelectItem>
                     {dealers.map((d) => (
                       <SelectItem key={d.id} value={String(d.id)}>
                         {d.name}
@@ -317,7 +316,7 @@ export default function WorkshopForm({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-slate-400">
-                  The dealer who owns this workshop.
+                  Optional. The dealer who owns this workshop, if any.
                 </p>
               </div>
             )}

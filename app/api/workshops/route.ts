@@ -47,9 +47,9 @@ export async function POST(req: NextRequest) {
     status = "active",
   } = body;
 
-  if (!dealer_id || !name || !slug || !type) {
+  if (!name || !slug || !type) {
     return NextResponse.json(
-      { error: "dealer_id, name, slug, and type are required" },
+      { error: "name, slug, and type are required" },
       { status: 400 },
     );
   }
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabaseServer
     .from("workshops")
     .insert({
-      dealer_id,
+      dealer_id: dealer_id || null,
       name,
       slug,
       type,

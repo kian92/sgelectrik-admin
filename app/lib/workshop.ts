@@ -6,7 +6,7 @@ export interface Dealer {
 
 export interface Workshop {
   id: number;
-  dealer_id: number;
+  dealer_id: number | null;
   name: string;
   slug: string;
   type: "Authorised" | "Independent" | "Specialist";
