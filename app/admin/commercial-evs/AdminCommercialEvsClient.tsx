@@ -1,4 +1,3 @@
-// app/admin/commercial-evs/AdminCommercialEvsClient.tsx
 "use client";
 
 import { useState } from "react";
@@ -9,23 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Truck, Plus } from "lucide-react";
 import { CommercialEvCard } from "@/app/(common)/CommercialEVCard";
+import { Pagination } from "@/components/Pagination";
 import type { CommercialEv } from "./page";
 
 interface Props {
   initialEvs: CommercialEv[];
 }
 
-const LIMIT = 9; // 3×3 grid
-const PAGE_GROUP_SIZE = 5;
-
-function getPageGroup(current: number, total: number) {
-  const groupIndex = Math.floor((current - 1) / PAGE_GROUP_SIZE);
-  const start = groupIndex * PAGE_GROUP_SIZE + 1;
-  const end = Math.min(start + PAGE_GROUP_SIZE - 1, total);
-  const pages: number[] = [];
-  for (let i = start; i <= end; i++) pages.push(i);
-  return { pages, start, end };
-}
+const LIMIT = 6; // 3×3 grid
 
 export default function AdminCommercialEvsClient({ initialEvs }: Props) {
   const router = useRouter();
@@ -37,9 +27,8 @@ export default function AdminCommercialEvsClient({ initialEvs }: Props) {
   );
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
-  const totalPages = Math.ceil(evs.length / LIMIT);
+  const totalPages = Math.max(1, Math.ceil(evs.length / LIMIT));
   const paginated = evs.slice((page - 1) * LIMIT, page * LIMIT);
-  const { pages } = getPageGroup(page, totalPages);
 
   const goToPage = (p: number) => {
     setPage(p);
@@ -48,7 +37,10 @@ export default function AdminCommercialEvsClient({ initialEvs }: Props) {
 
   const handleDeleted = (id: number) => {
     const next = evs.filter((ev) => ev.id !== id);
-    const nextPage = Math.min(page, Math.max(1, Math.ceil(next.length / LIMIT)));
+    const nextPage = Math.min(
+      page,
+      Math.max(1, Math.ceil(next.length / LIMIT)),
+    );
     setEvs(next);
     if (nextPage !== page) {
       setPage(nextPage);
@@ -56,7 +48,10 @@ export default function AdminCommercialEvsClient({ initialEvs }: Props) {
     }
   };
 
-  const handleToggleFeatured = async (ev: { id: number; featured?: boolean }) => {
+  const handleToggleFeatured = async (ev: {
+    id: number;
+    featured?: boolean;
+  }) => {
     setTogglingId(ev.id);
     try {
       await fetch(`/api/commercial-evs/${ev.id}`, {
@@ -65,7 +60,9 @@ export default function AdminCommercialEvsClient({ initialEvs }: Props) {
         body: JSON.stringify({ featured: !ev.featured }),
       });
       setEvs((prev) =>
-        prev.map((e) => (e.id === ev.id ? { ...e, featured: !ev.featured } : e)),
+        prev.map((e) =>
+          e.id === ev.id ? { ...e, featured: !ev.featured } : e,
+        ),
       );
     } finally {
       setTogglingId(null);
@@ -128,49 +125,11 @@ export default function AdminCommercialEvsClient({ initialEvs }: Props) {
             ))}
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-16 pt-6">
-              <div className="flex items-center gap-2">
-                {/* Previous */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(Math.max(1, page - 1))}
-                  disabled={page === 1}
-                >
-                  ← Previous
-                </Button>
-
-                {/* Page numbers */}
-                <div className="flex gap-1">
-                  {pages.map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => goToPage(p)}
-                      className={`h-8 w-8 rounded-lg text-xs font-medium ${
-                        page === p
-                          ? "bg-emerald-600 text-white"
-                          : "bg-white border border-slate-200"
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Next */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => goToPage(Math.min(totalPages, page + 1))}
-                  disabled={page === totalPages}
-                >
-                  Next →
-                </Button>
-              </div>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+          />
         </>
       )}
     </div>

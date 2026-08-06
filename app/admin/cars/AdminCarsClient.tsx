@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Car, Pencil, Plus, Star, Loader2 } from "lucide-react";
 import { DeleteCarButton } from "@/app/dealer/cars/DeleteCarButton";
+import { Pagination } from "@/components/Pagination";
 
 interface DealerOption {
   id: number;
@@ -52,15 +54,25 @@ export default function AdminCarsClient({
   initialCars,
   initialDealers,
 }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [search, setSearch] = useState("");
   const [dealerFilter, setDealerFilter] = useState("all");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(
+    Math.max(1, Number(searchParams.get("page") || 1)),
+  );
   const [cars, setCars] = useState(initialCars);
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
   useEffect(() => {
     setCars(initialCars);
   }, [initialCars]);
+
+  const goToPage = (p: number) => {
+    setPage(p);
+    router.push(`?page=${p}`, { scroll: false });
+  };
 
   async function handleToggleFeatured(car: AdminCar) {
     setTogglingId(car.id);
@@ -71,7 +83,9 @@ export default function AdminCarsClient({
         body: JSON.stringify({ featured: !car.featured }),
       });
       setCars((prev) =>
-        prev.map((c) => (c.id === car.id ? { ...c, featured: !car.featured } : c)),
+        prev.map((c) =>
+          c.id === car.id ? { ...c, featured: !car.featured } : c,
+        ),
       );
     } finally {
       setTogglingId(null);
@@ -127,7 +141,7 @@ export default function AdminCarsClient({
           value={search}
           onChange={(event) => {
             setSearch(event.target.value);
-            setPage(1);
+            goToPage(1);
           }}
           placeholder="Search by car, brand, model or dealer"
         />
@@ -136,7 +150,7 @@ export default function AdminCarsClient({
           value={dealerFilter}
           onChange={(event) => {
             setDealerFilter(event.target.value);
-            setPage(1);
+            goToPage(1);
           }}
           className="w-full md:w-52 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
         >
@@ -193,13 +207,17 @@ export default function AdminCarsClient({
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-slate-900">{car.name}</div>
+                      <div className="font-medium text-slate-900">
+                        {car.name}
+                      </div>
                       <div className="text-xs text-slate-400">
                         {car.brand} · {car.model}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="text-sm text-slate-700">{car.dealerName}</div>
+                      <div className="text-sm text-slate-700">
+                        {car.dealerName}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">
@@ -208,19 +226,25 @@ export default function AdminCarsClient({
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={car.condition === "new" ? "default" : "outline"}
+                        variant={
+                          car.condition === "new" ? "default" : "outline"
+                        }
                         className="text-xs capitalize"
                       >
                         {car.condition}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-slate-600">{car.year ?? "—"}</TableCell>
+                    <TableCell className="text-slate-600">
+                      {car.year ?? "—"}
+                    </TableCell>
                     <TableCell className="text-slate-600">
                       S${car.price_min.toLocaleString()}
                       {car.price_max !== car.price_min &&
                         ` – S$${car.price_max.toLocaleString()}`}
                     </TableCell>
-                    <TableCell className="text-slate-600">{car.range_km} km</TableCell>
+                    <TableCell className="text-slate-600">
+                      {car.range_km} km
+                    </TableCell>
                     <TableCell>
                       <button
                         onClick={() => handleToggleFeatured(car)}
@@ -239,7 +263,12 @@ export default function AdminCarsClient({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button asChild size="sm" variant="outline" className="gap-1 h-8">
+                        <Button
+                          asChild
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 h-8"
+                        >
                           <Link href={`/admin/cars/edit/${car.id}`}>
                             <Pencil className="h-3 w-3" />
                             Edit
@@ -254,27 +283,11 @@ export default function AdminCarsClient({
             </Table>
           </div>
 
-          <div className="flex items-center justify-center gap-2 mt-6">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(Math.max(1, safePage - 1))}
-              disabled={safePage === 1}
-            >
-              Previous
-            </Button>
-            <div className="text-sm text-slate-600">
-              Page {safePage} of {totalPages}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(Math.min(totalPages, safePage + 1))}
-              disabled={safePage === totalPages}
-            >
-              Next
-            </Button>
-          </div>
+          <Pagination
+            page={safePage}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+          />
         </>
       )}
     </div>
