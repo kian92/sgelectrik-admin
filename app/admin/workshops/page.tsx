@@ -3,6 +3,8 @@ import { Workshop } from "@/app/lib/workshop";
 import { supabaseServer } from "@/app/lib/supabase-server";
 import WorkshopsClient from "./WorkshopClient";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Workshops — Admin",
   description: "Manage all EV workshops listed on the platform.",
