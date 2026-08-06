@@ -19,6 +19,9 @@ import {
   Clock,
   Zap,
   DollarSign,
+  Building2,
+  Globe,
+  Briefcase,
 } from "lucide-react";
 import { QUIZ_LABELS, formatQuizValue } from "@/app/lib/quiz-labels";
 
@@ -43,13 +46,23 @@ interface CarRec {
   fitScore: number;
 }
 
+interface PartnerDetails {
+  company_name?: string;
+  website?: string | null;
+  business_type?: string;
+  monthly_volume?: string;
+  partnership_interest?: string;
+}
+
 function getSource(lead: Lead): string {
   if (!lead.recommendation_result) return "Direct enquiry";
   try {
     const r = JSON.parse(lead.recommendation_result);
     if (r?.source === "rental_enquiry") return `Rental — ${r.company}`;
     if (r?.source === "dealer_enquiry") return "Dealer page";
-    return "AI Quiz";
+    if (r?.source === "partner_register") return "Partner page";
+    if (r?.recommendations) return "AI Quiz";
+    return "Direct enquiry";
   } catch {
     return "Direct enquiry";
   }
@@ -111,6 +124,7 @@ export default function LeadDetail() {
   let quizAnswers: Record<string, unknown> | null = null;
   let recommendations: CarRec[] = [];
   let aiSummary = "";
+  let partnerDetails: PartnerDetails | null = null;
 
   try {
     if (lead.quiz_answers) quizAnswers = JSON.parse(lead.quiz_answers);
@@ -120,6 +134,7 @@ export default function LeadDetail() {
       const r = JSON.parse(lead.recommendation_result);
       recommendations = r.recommendations ?? [];
       aiSummary = r.summary ?? "";
+      if (r.source === "partner_register") partnerDetails = r;
     }
   } catch {}
 
@@ -212,6 +227,80 @@ export default function LeadDetail() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Partner registration details */}
+        {partnerDetails && (
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-slate-400" /> Partner
+                Registration Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-0">
+              {partnerDetails.company_name && (
+                <div className="flex items-center justify-between py-2.5 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5 text-slate-600">
+                    <Building2 className="h-4 w-4 text-slate-400" />
+                    <span className="text-sm">Company</span>
+                  </div>
+                  <span className="text-sm font-medium text-slate-900">
+                    {partnerDetails.company_name}
+                  </span>
+                </div>
+              )}
+              {partnerDetails.website && (
+                <div className="flex items-center justify-between py-2.5 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5 text-slate-600">
+                    <Globe className="h-4 w-4 text-slate-400" />
+                    <span className="text-sm">Website</span>
+                  </div>
+                  <a
+                    href={partnerDetails.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-emerald-600 hover:underline"
+                  >
+                    {partnerDetails.website}
+                  </a>
+                </div>
+              )}
+              {partnerDetails.business_type && (
+                <div className="flex items-center justify-between py-2.5 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5 text-slate-600">
+                    <Briefcase className="h-4 w-4 text-slate-400" />
+                    <span className="text-sm">Business type</span>
+                  </div>
+                  <span className="text-sm font-medium text-slate-900 capitalize">
+                    {partnerDetails.business_type}
+                  </span>
+                </div>
+              )}
+              {partnerDetails.monthly_volume && (
+                <div className="flex items-center justify-between py-2.5 border-b border-slate-100">
+                  <div className="flex items-center gap-2.5 text-slate-600">
+                    <Car className="h-4 w-4 text-slate-400" />
+                    <span className="text-sm">Monthly volume</span>
+                  </div>
+                  <span className="text-sm font-medium text-slate-900">
+                    {partnerDetails.monthly_volume.replace(/_/g, "–")}
+                  </span>
+                </div>
+              )}
+              {partnerDetails.partnership_interest && (
+                <div className="py-2.5">
+                  <div className="flex items-center gap-2.5 text-slate-600 mb-1.5">
+                    <FileText className="h-4 w-4 text-slate-400" />
+                    <span className="text-sm">Message</span>
+                  </div>
+                  <p className="text-sm text-slate-900 bg-slate-50 rounded-xl px-4 py-3 leading-relaxed">
+                    {partnerDetails.partnership_interest}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quiz answers */}
         {quizAnswers && (

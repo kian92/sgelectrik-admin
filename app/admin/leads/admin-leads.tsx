@@ -83,7 +83,9 @@ function getSource(lead: Lead): string {
     const r = JSON.parse(lead.recommendation_result);
     if (r?.source === "rental_enquiry") return `Rental — ${r.company}`;
     if (r?.source === "dealer_enquiry") return "Dealer page";
-    return "AI Quiz";
+    if (r?.source === "partner_register") return "Partner page";
+    if (r?.recommendations) return "AI Quiz";
+    return "Direct enquiry";
   } catch {
     return "Direct enquiry";
   }
