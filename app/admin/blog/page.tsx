@@ -101,7 +101,7 @@ const EMPTY_FORM: {
   cover_gradient: string;
   read_minutes: number;
   status: "draft" | "published";
-  featured: false;
+  featured: boolean;
 } = {
   title: "",
   slug: "",
