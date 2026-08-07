@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
   let query = supabaseServer
     .from("blog_posts")
     .select("*")
+    .order("featured", { ascending: false })
     .order("published_at", { ascending: false });
 
   if (status) query = query.eq("status", status);
@@ -46,6 +47,13 @@ export async function POST(req: NextRequest) {
 
   if (body.status === "published" && !body.published_at) {
     body.published_at = new Date().toISOString();
+  }
+
+  if (body.featured) {
+    await supabaseServer
+      .from("blog_posts")
+      .update({ featured: false })
+      .eq("featured", true);
   }
 
   const { data, error } = await supabaseServer
