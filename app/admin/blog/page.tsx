@@ -33,6 +33,7 @@ import { ImageUpload } from "@/components/FileUpload";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from "@/components/Pagination";
+import SearchBar from "@/components/SearchBar";
 
 interface BlogPost {
   id: number;
@@ -227,6 +228,7 @@ function BlogAdminInner() {
   const [filterStatus, setFilterStatus] = useState<
     "all" | "published" | "draft"
   >("all");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(
     Math.max(1, Number(searchParams.get("page") || 1)),
   );
@@ -289,6 +291,11 @@ function BlogAdminInner() {
 
   const changeFilter = (f: "all" | "published" | "draft") => {
     setFilterStatus(f);
+    goToPage(1);
+  };
+
+  const handleSearchChange = (q: string) => {
+    setSearch(q);
     goToPage(1);
   };
 
@@ -452,10 +459,28 @@ function BlogAdminInner() {
         ? "3"
         : "paragraph";
 
-  const filtered =
-    filterStatus === "all"
-      ? posts
-      : posts.filter((p) => p.status === filterStatus);
+  // Combined status + free-text search filter. Search matches title, excerpt,
+  // category, author and tags.
+  const filtered = posts.filter((p) => {
+    if (filterStatus !== "all" && p.status !== filterStatus) return false;
+
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+
+    const tagsStr = (() => {
+      try {
+        return (JSON.parse(p.tags) as string[]).join(" ");
+      } catch {
+        return p.tags;
+      }
+    })();
+
+    const haystack = [p.title, p.excerpt, p.category, p.author, tagsStr]
+      .join(" ")
+      .toLowerCase();
+
+    return haystack.includes(q);
+  });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -1087,21 +1112,30 @@ function BlogAdminInner() {
         </Card>
       )}
 
-      {/* Filter tabs */}
-      <div className="flex gap-2 mb-5">
-        {(["all", "published", "draft"] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => changeFilter(f)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-              filterStatus === f
-                ? "bg-slate-900 text-white border-slate-900"
-                : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
-            }`}
-          >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
+      {/* Filter tabs + search */}
+      <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
+        <div className="flex gap-2">
+          {(["all", "published", "draft"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => changeFilter(f)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                filterStatus === f
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        <SearchBar
+          value={search}
+          onChange={handleSearchChange}
+          placeholder="Search posts by title, excerpt, category, tag..."
+          className="w-full sm:w-72"
+        />
       </div>
 
       {/* Posts list */}
@@ -1115,7 +1149,11 @@ function BlogAdminInner() {
         <Card className="border-0 shadow-sm">
           <CardContent className="py-16 text-center text-slate-400">
             <BookOpen className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p>No posts yet. Click "New Post" to get started.</p>
+            <p>
+              {search.trim()
+                ? "No posts match your search."
+                : 'No posts yet. Click "New Post" to get started.'}
+            </p>
           </CardContent>
         </Card>
       ) : (

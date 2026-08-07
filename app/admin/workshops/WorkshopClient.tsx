@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Workshop } from "@/app/lib/workshop";
+import { SearchBar } from "@/components/SearchBar";
 
 const PAGE_SIZE = 9;
 const PAGE_GROUP = 5;
@@ -32,8 +33,25 @@ export default function WorkshopsClient({ initialWorkshops }: Props) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState("");
 
-  const totalPages = Math.max(1, Math.ceil(workshops.length / PAGE_SIZE));
+  // Free-text search across name, type, area and owning dealer.
+  const filteredWorkshops = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return workshops;
+    return workshops.filter((w) => {
+      const haystack = [w.name, w.type, w.area, w.dealers?.name]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [workshops, search]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredWorkshops.length / PAGE_SIZE),
+  );
 
   const groupStart =
     Math.floor((currentPage - 1) / PAGE_GROUP) * PAGE_GROUP + 1;
@@ -43,13 +61,19 @@ export default function WorkshopsClient({ initialWorkshops }: Props) {
     (_, i) => groupStart + i,
   );
 
-  const paginatedWorkshops = workshops.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedWorkshops = filteredWorkshops.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
   );
 
   function goToPage(page: number) {
     setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  }
+
+  function handleSearchChange(q: string) {
+    setSearch(q);
+    setCurrentPage(1);
   }
 
   async function handleDelete(id: number, name: string) {
@@ -86,7 +110,7 @@ export default function WorkshopsClient({ initialWorkshops }: Props) {
   return (
     <div className="max-w-screen-xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between gap-4 flex-wrap">
+      <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Workshops</h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -105,6 +129,16 @@ export default function WorkshopsClient({ initialWorkshops }: Props) {
         </div>
       </div>
 
+      {/* Search */}
+      <div className="mb-6">
+        <SearchBar
+          value={search}
+          onChange={handleSearchChange}
+          placeholder="Search workshops by name, type, area, dealer..."
+          className="w-full sm:w-80"
+        />
+      </div>
+
       {/* Empty state */}
       {workshops.length === 0 ? (
         <Card className="border-0 shadow-sm">
@@ -119,6 +153,16 @@ export default function WorkshopsClient({ initialWorkshops }: Props) {
                 <Plus className="h-4 w-4" /> Add workshop
               </Button>
             </Link>
+          </CardContent>
+        </Card>
+      ) : filteredWorkshops.length === 0 ? (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="py-20 text-center">
+            <Wrench className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+            <p className="text-slate-500 font-medium">No matching workshops</p>
+            <p className="text-slate-400 text-sm mt-1">
+              Try a different search term.
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -189,8 +233,8 @@ export default function WorkshopsClient({ initialWorkshops }: Props) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1}
+                onClick={() => goToPage(safePage - 1)}
+                disabled={safePage === 1}
                 className="gap-1 px-3"
               >
                 <ChevronLeft className="h-4 w-4" /> Prev
@@ -199,7 +243,7 @@ export default function WorkshopsClient({ initialWorkshops }: Props) {
               {pageNumbers.map((page) => (
                 <Button
                   key={page}
-                  variant={currentPage === page ? "default" : "outline"}
+                  variant={safePage === page ? "default" : "outline"}
                   size="sm"
                   onClick={() => goToPage(page)}
                   className="w-9"
@@ -211,8 +255,8 @@ export default function WorkshopsClient({ initialWorkshops }: Props) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
+                onClick={() => goToPage(safePage + 1)}
+                disabled={safePage === totalPages}
                 className="gap-1 px-3"
               >
                 Next <ChevronRight className="h-4 w-4" />

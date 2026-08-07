@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Promotion } from "@/app/lib/promotion";
+import { SearchBar } from "@/components/SearchBar";
 
 const PAGE_SIZE = 9; // cards per page (3×3 grid)
 const PAGE_GROUP = 5; // how many page numbers to show at once
@@ -49,14 +50,34 @@ function formatDateRange(startDate: string, endDate: string) {
   return `${start} – ${new Date(endDate).toLocaleDateString("en-SG", opts)}`;
 }
 
-export default function PromotionsClient({ initialPromotions, basePath }: Props) {
+export default function PromotionsClient({
+  initialPromotions,
+  basePath,
+}: Props) {
   const router = useRouter();
   const [promotions, setPromotions] = useState<Promotion[]>(initialPromotions);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState("");
 
-  const totalPages = Math.max(1, Math.ceil(promotions.length / PAGE_SIZE));
+  // Free-text search across title, venue, time range and owning dealer.
+  const filteredPromotions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return promotions;
+    return promotions.filter((p) => {
+      const haystack = [p.title, p.venue, p.time_range, p.dealers?.name]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [promotions, search]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredPromotions.length / PAGE_SIZE),
+  );
 
   const groupStart =
     Math.floor((currentPage - 1) / PAGE_GROUP) * PAGE_GROUP + 1;
@@ -66,13 +87,19 @@ export default function PromotionsClient({ initialPromotions, basePath }: Props)
     (_, i) => groupStart + i,
   );
 
-  const paginatedPromotions = promotions.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedPromotions = filteredPromotions.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
   );
 
   function goToPage(page: number) {
     setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  }
+
+  function handleSearchChange(q: string) {
+    setSearch(q);
+    setCurrentPage(1);
   }
 
   async function handleDelete(id: number, title: string) {
@@ -104,7 +131,7 @@ export default function PromotionsClient({ initialPromotions, basePath }: Props)
   return (
     <div className="max-w-screen-xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between gap-4 flex-wrap">
+      <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Promotions</h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -123,6 +150,16 @@ export default function PromotionsClient({ initialPromotions, basePath }: Props)
         </div>
       </div>
 
+      {/* Search */}
+      <div className="mb-6">
+        <SearchBar
+          value={search}
+          onChange={handleSearchChange}
+          placeholder="Search by title, venue, dealer..."
+          className="w-full sm:w-80"
+        />
+      </div>
+
       {/* Empty state */}
       {promotions.length === 0 ? (
         <Card className="border-0 shadow-sm">
@@ -137,6 +174,18 @@ export default function PromotionsClient({ initialPromotions, basePath }: Props)
                 <Plus className="h-4 w-4" /> Add promotion
               </Button>
             </Link>
+          </CardContent>
+        </Card>
+      ) : filteredPromotions.length === 0 ? (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="py-20 text-center">
+            <Tag className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+            <p className="text-slate-500 font-medium">
+              No promotions match your search
+            </p>
+            <p className="text-slate-400 text-sm mt-1">
+              Try a different search term.
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -158,7 +207,9 @@ export default function PromotionsClient({ initialPromotions, basePath }: Props)
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         <Badge
-                          variant={p.status === "active" ? "default" : "secondary"}
+                          variant={
+                            p.status === "active" ? "default" : "secondary"
+                          }
                           className="text-xs"
                         >
                           {p.status}
@@ -231,8 +282,8 @@ export default function PromotionsClient({ initialPromotions, basePath }: Props)
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => goToPage(currentPage - 1)}
-                disabled={currentPage === 1}
+                onClick={() => goToPage(safePage - 1)}
+                disabled={safePage === 1}
                 className="gap-1 px-3"
               >
                 <ChevronLeft className="h-4 w-4" /> Prev
@@ -241,7 +292,7 @@ export default function PromotionsClient({ initialPromotions, basePath }: Props)
               {pageNumbers.map((page) => (
                 <Button
                   key={page}
-                  variant={currentPage === page ? "default" : "outline"}
+                  variant={safePage === page ? "default" : "outline"}
                   size="sm"
                   onClick={() => goToPage(page)}
                   className="w-9"
@@ -253,8 +304,8 @@ export default function PromotionsClient({ initialPromotions, basePath }: Props)
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => goToPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
+                onClick={() => goToPage(safePage + 1)}
+                disabled={safePage === totalPages}
                 className="gap-1 px-3"
               >
                 Next <ChevronRight className="h-4 w-4" />
