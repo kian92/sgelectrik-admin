@@ -10,17 +10,32 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "50");
   const network = searchParams.get("network");
+  const area = searchParams.get("area");
+  const search = searchParams.get("search");
 
   const from = (page - 1) * limit;
   const to = from + limit - 1;
 
+  // Exact count so pagination stays correct once filters/search narrow the set.
   let query = supabaseServer
     .from("charging_stations")
-    .select("*", { count: "estimated" }); // 👈 IMPORTANT
+    .select("*", { count: "exact" });
 
-  // Add network filter if provided
-  if (network) {
+  // Filters (server-side so they apply across the whole table, not just one page)
+  if (network && network !== "All") {
     query = query.eq("network", network);
+  }
+  if (area && area !== "All") {
+    query = query.eq("area", area);
+  }
+  if (search && search.trim()) {
+    // Strip characters that would break PostgREST's or()/ilike filter syntax.
+    const q = search.replace(/[,()%*]/g, " ").trim();
+    if (q) {
+      query = query.or(
+        `name.ilike.%${q}%,address.ilike.%${q}%,area.ilike.%${q}%`,
+      );
+    }
   }
 
   const { data, error, count } = await query.order("name").range(from, to); // 👈 pagination

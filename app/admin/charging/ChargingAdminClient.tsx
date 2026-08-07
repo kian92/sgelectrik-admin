@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -145,10 +145,12 @@ function Field({
 
 function StationModal({
   station,
+  networkOptions,
   onClose,
   onSaved,
 }: {
   station: Station | null;
+  networkOptions: string[];
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -255,15 +257,18 @@ function StationModal({
               />
             </Field>
             <Field label="Network">
-              <select
+              <input
                 className={inputCls}
+                list="network-options"
                 value={form.network}
                 onChange={(e) => set("network", e.target.value)}
-              >
-                {NETWORKS.map((n) => (
-                  <option key={n}>{n}</option>
+                placeholder="Select or type a network"
+              />
+              <datalist id="network-options">
+                {(networkOptions.length ? networkOptions : NETWORKS).map((n) => (
+                  <option key={n} value={n} />
                 ))}
-              </select>
+              </datalist>
             </Field>
           </div>
 
@@ -402,38 +407,69 @@ function StationModal({
 
 export default function ChargingAdminClient({
   initialPage,
+  initialSearch = "",
+  initialNetwork = "All",
+  initialArea = "All",
 }: {
   initialPage: number;
+  initialSearch?: string;
+  initialNetwork?: string;
+  initialArea?: string;
 }) {
   const router = useRouter();
   const [stations, setStations] = useState<Station[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [networkFilter, setNetworkFilter] = useState("All");
+  const [search, setSearch] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+  const [networkFilter, setNetworkFilter] = useState(initialNetwork);
+  const [areaFilter, setAreaFilter] = useState(initialArea);
+  const [networkOptions, setNetworkOptions] = useState<string[]>([]);
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Station | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Station | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [page, setPage] = useState(initialPage);
-  const [limit] = useState(5); // Increased from 10 to 50 items per page
+  const [limit] = useState(20); // items per page
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const PAGE_GROUP_SIZE = 6;
+  const isFirstRender = useRef(true);
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
+  // ── Distinct networks (loaded once, drives the Network dropdown) ─────────────
+
+  useEffect(() => {
+    fetch("/api/charging-stations/networks")
+      .then((r) => r.json())
+      .then((d) => setNetworkOptions(Array.isArray(d.networks) ? d.networks : []))
+      .catch(() => setNetworkOptions([]));
+  }, []);
+
+  // ── Debounce the search box ──────────────────────────────────────────────────
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // ── Fetch (server-side search + filters) ─────────────────────────────────────
 
   const fetchStations = useCallback(
     async (pageNum: number) => {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch(
-          `/api/charging-stations?page=${pageNum}&limit=${limit}`,
-        );
+        const params = new URLSearchParams({
+          page: String(pageNum),
+          limit: String(limit),
+        });
+        if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+        if (networkFilter !== "All") params.set("network", networkFilter);
+        if (areaFilter !== "All") params.set("area", areaFilter);
+
+        const res = await fetch(`/api/charging-stations?${params.toString()}`);
         const result = await res.json();
 
-        // Handle paginated response format
         if (result.error && !result.data) {
           setError(result.error);
           setStations([]);
@@ -445,7 +481,7 @@ export default function ChargingAdminClient({
           setTotal(result.length);
           setTotalPages(1);
         } else {
-          // New paginated format
+          // Paginated format
           setStations(result.data || []);
           setTotal(result.total || 0);
           setTotalPages(result.totalPages || 0);
@@ -461,13 +497,34 @@ export default function ChargingAdminClient({
         setIsLoading(false);
       }
     },
-    [limit],
+    [limit, debouncedSearch, networkFilter, areaFilter],
   );
 
-  // Fetch when page changes
+  // Reset to page 1 whenever a filter/search changes (but not on first mount,
+  // so a deep-linked ?page=N is respected).
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setPage(1);
+  }, [debouncedSearch, networkFilter, areaFilter]);
+
+  // Fetch on page or filter change
   useEffect(() => {
     fetchStations(page);
   }, [page, fetchStations]);
+
+  // Keep the URL in sync so filters/search survive refresh & are shareable
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (page > 1) params.set("page", String(page));
+    if (debouncedSearch.trim()) params.set("search", debouncedSearch.trim());
+    if (networkFilter !== "All") params.set("network", networkFilter);
+    if (areaFilter !== "All") params.set("area", areaFilter);
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : "?", { scroll: false });
+  }, [page, debouncedSearch, networkFilter, areaFilter, router]);
 
   // ── Delete ─────────────────────────────────────────────────────────────────
 
@@ -476,8 +533,11 @@ export default function ChargingAdminClient({
     try {
       await fetch(`/api/charging-stations/${id}`, { method: "DELETE" });
       setConfirmDelete(null);
-      setPage(1);
-      await fetchStations(1);
+      if (page === 1) {
+        await fetchStations(1);
+      } else {
+        setPage(1);
+      }
     } finally {
       setDeleting(false);
     }
@@ -495,31 +555,28 @@ export default function ChargingAdminClient({
 
     return { pages, start, end };
   }
-  const { pages, start, end } = getPageGroup(page, totalPages);
+  const { pages } = getPageGroup(page, totalPages);
   const goToPage = (p: number) => {
     setPage(p);
-    router.push(`?page=${p}`, { scroll: false });
   };
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
-  const networks = [
-    "All",
-    ...Array.from(new Set(stations.map((s) => s.network))).sort(),
-  ];
+  const networks = ["All", ...networkOptions];
+  const areaOptions = ["All", ...AREAS];
+  const hasFilters =
+    debouncedSearch.trim() !== "" ||
+    networkFilter !== "All" ||
+    areaFilter !== "All";
 
-  const filtered = stations.filter((s) => {
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      s.name.toLowerCase().includes(q) ||
-      s.address.toLowerCase().includes(q) ||
-      s.area.toLowerCase().includes(q);
-    const matchNet = networkFilter === "All" || s.network === networkFilter;
-    return matchSearch && matchNet;
-  });
+  const clearFilters = () => {
+    setSearch("");
+    setNetworkFilter("All");
+    setAreaFilter("All");
+  };
 
-  const totalConnectors = filtered.reduce((sum, s) => sum + s.connectors, 0);
+  // Connectors shown on the current page (full-set total isn't returned).
+  const pageConnectors = stations.reduce((sum, s) => sum + s.connectors, 0);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -530,8 +587,8 @@ export default function ChargingAdminClient({
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Charging Map</h1>
           <p className="text-slate-500 text-sm mt-1">
-            {total} total stations · {filtered.length} showing ·{" "}
-            {totalConnectors} connectors
+            {total} {hasFilters ? "matching" : "total"} stations ·{" "}
+            {stations.length} showing · {pageConnectors} connectors on page
             {totalPages > 1 && ` · Page ${page} of ${totalPages}`}
           </p>
         </div>
@@ -547,28 +604,57 @@ export default function ChargingAdminClient({
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-5">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search stations…"
-          className="px-4 py-2 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 flex-1 min-w-48"
-        />
-        <div className="flex gap-1.5 flex-wrap">
-          {networks.map((n) => (
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        <div className="relative flex-1 min-w-56">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, address or area…"
+            className="w-full pl-4 pr-9 py-2 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+          />
+          {search && (
             <button
-              key={n}
-              onClick={() => setNetworkFilter(n)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                networkFilter === n
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
-              }`}
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-slate-100 text-slate-400"
+              aria-label="Clear search"
             >
-              {n}
+              <X className="h-4 w-4" />
             </button>
-          ))}
+          )}
         </div>
+
+        <select
+          value={networkFilter}
+          onChange={(e) => setNetworkFilter(e.target.value)}
+          className="px-3 py-2 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 min-w-44"
+        >
+          {networks.map((n) => (
+            <option key={n} value={n}>
+              {n === "All" ? "All networks" : n}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={areaFilter}
+          onChange={(e) => setAreaFilter(e.target.value)}
+          className="px-3 py-2 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 min-w-40"
+        >
+          {areaOptions.map((a) => (
+            <option key={a} value={a}>
+              {a === "All" ? "All areas" : a}
+            </option>
+          ))}
+        </select>
+
+        {hasFilters && (
+          <button
+            onClick={clearFilters}
+            className="px-3 py-2 text-sm font-medium text-slate-600 rounded-xl border border-slate-200 bg-white hover:border-slate-300 flex items-center gap-1.5"
+          >
+            <X className="h-3.5 w-3.5" /> Clear
+          </button>
+        )}
       </div>
 
       {/* List */}
@@ -581,14 +667,22 @@ export default function ChargingAdminClient({
           <p className="font-medium">Failed to load stations</p>
           <p className="text-xs mt-1">{error}</p>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : stations.length === 0 ? (
         <div className="text-center py-20 text-slate-400">
           <Zap className="h-10 w-10 mx-auto mb-3 opacity-30" />
           <p className="font-medium">No stations found</p>
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              className="mt-3 text-sm font-medium text-emerald-600 hover:text-emerald-700"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((s) => {
+          {stations.map((s) => {
             const types = JSON.parse(s.connectorTypes) as string[];
             const netColor =
               NETWORK_COLORS[s.network] || "bg-slate-100 text-slate-600";
@@ -717,6 +811,7 @@ export default function ChargingAdminClient({
       {modal && (
         <StationModal
           station={editing}
+          networkOptions={networkOptions}
           onClose={() => {
             setModal(false);
             setEditing(null);
