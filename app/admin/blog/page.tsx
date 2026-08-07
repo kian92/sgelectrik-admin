@@ -54,6 +54,7 @@ interface BlogPost {
   published_at?: string;
   created_at: string;
   updated_at: string;
+  featured: boolean;
 }
 
 const GRADIENTS = [
@@ -100,6 +101,7 @@ const EMPTY_FORM: {
   cover_gradient: string;
   read_minutes: number;
   status: "draft" | "published";
+  featured: false;
 } = {
   title: "",
   slug: "",
@@ -113,6 +115,7 @@ const EMPTY_FORM: {
   cover_gradient: GRADIENTS[0],
   read_minutes: 5,
   status: "draft",
+  featured: false,
 };
 
 function slugify(t: string) {
@@ -347,6 +350,7 @@ function BlogAdminInner() {
       cover_gradient: post.cover_gradient,
       read_minutes: post.read_minutes,
       status: post.status as "draft" | "published",
+      featured: post.featured ?? false,
     });
     editor?.commands.setContent(html);
     setImageMode(post.cover_image ? "url" : "gradient");
@@ -1093,6 +1097,21 @@ function BlogAdminInner() {
                     <option value="published">Published</option>
                   </select>
                 </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="featured"
+                    type="checkbox"
+                    checked={form.featured}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        featured: e.target.checked,
+                      }))
+                    }
+                  />
+
+                  <Label htmlFor="featured">Show as Featured Blog</Label>
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
@@ -1220,6 +1239,11 @@ function BlogAdminInner() {
                         >
                           {post.status === "published" ? "Published" : "Draft"}
                         </span>
+                        {post.featured && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-300">
+                            ⭐ Featured
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-slate-500 line-clamp-1 mb-1.5">
                         {post.excerpt}

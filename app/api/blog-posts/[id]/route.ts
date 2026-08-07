@@ -52,6 +52,12 @@ export async function PATCH(
   if (body.status === "published" && !body.published_at) {
     body.published_at = new Date().toISOString();
   }
+  if (body.featured) {
+    await supabaseServer
+      .from("blog_posts")
+      .update({ featured: false })
+      .eq("featured", true);
+  }
 
   const { data, error } = await supabaseServer
     .from("blog_posts")
