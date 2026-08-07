@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Car, Plus, MapPin, Star, Pencil, Trash2 } from "lucide-react";
+import { SearchBar } from "@/components/SearchBar";
 import type { RentalCompany } from "./page";
 
 interface Props {
@@ -24,13 +25,32 @@ export default function RentalsAdminClient({
   const router = useRouter();
 
   const [page, setPage] = useState(initialPage);
+  const [search, setSearch] = useState("");
   const limit = 6;
   const PAGE_GROUP_SIZE = 6;
 
-  const total = companies.length;
-  const totalPages = Math.ceil(total / limit);
+  // Free-text search across name, type, area and fleet model names.
+  const filteredCompanies = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return companies;
+    return companies.filter((c) => {
+      const fleetModels = (c.fleet ?? []).map((f) => f.model).join(" ");
+      const haystack = [c.name, c.type, c.area, fleetModels]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [companies, search]);
 
-  const paginated = companies.slice((page - 1) * limit, page * limit);
+  const total = filteredCompanies.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const safePage = Math.min(page, totalPages);
+
+  const paginated = filteredCompanies.slice(
+    (safePage - 1) * limit,
+    safePage * limit,
+  );
 
   async function handleDelete(id: number, name: string) {
     if (!confirm(`Delete ${name}?`)) return;
@@ -62,16 +82,21 @@ export default function RentalsAdminClient({
     return { pages, start, end };
   }
 
-  const { pages } = getPageGroup(page, totalPages);
+  const { pages } = getPageGroup(safePage, totalPages);
   const goToPage = (p: number) => {
     setPage(p);
     router.push(`?page=${p}`, { scroll: false });
   };
 
+  const handleSearchChange = (q: string) => {
+    setSearch(q);
+    goToPage(1);
+  };
+
   return (
     <div className="max-w-screen-xl mx-auto">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between gap-4 flex-wrap">
+      <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">EV Rentals</h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -88,6 +113,16 @@ export default function RentalsAdminClient({
             </Button>
           </Link>
         </div>
+      </div>
+
+      {/* Search */}
+      <div className="mb-6">
+        <SearchBar
+          value={search}
+          onChange={handleSearchChange}
+          placeholder="Search by name, type, area, fleet model..."
+          className="w-full sm:w-80"
+        />
       </div>
 
       {/* Empty state */}
@@ -110,8 +145,23 @@ export default function RentalsAdminClient({
         </Card>
       )}
 
+      {/* No search matches */}
+      {companies.length > 0 && filteredCompanies.length === 0 && (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="py-20 text-center">
+            <Car className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+            <p className="text-slate-500 font-medium">
+              No rental companies match your search
+            </p>
+            <p className="text-slate-400 text-sm mt-1">
+              Try a different search term.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Grid */}
-      {companies.length > 0 && (
+      {filteredCompanies.length > 0 && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {paginated.map((c) => (
             <Card key={c.id} className="border-0 shadow-sm">
@@ -169,46 +219,49 @@ export default function RentalsAdminClient({
           ))}
         </div>
       )}
-      <div className="flex justify-center mt-16 pt-6 border-t border-slate-200">
-        <div className="flex items-center gap-2">
-          {/* Previous */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => goToPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-          >
-            ← Previous
-          </Button>
 
-          {/* Pages */}
-          <div className="flex gap-1">
-            {pages.map((p) => (
-              <button
-                key={p}
-                onClick={() => goToPage(p)}
-                className={`h-8 w-8 rounded-lg text-xs font-medium ${
-                  page === p
-                    ? "bg-emerald-600 text-white"
-                    : "bg-white border border-slate-200"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
+      {filteredCompanies.length > 0 && (
+        <div className="flex justify-center mt-16 pt-6 border-t border-slate-200">
+          <div className="flex items-center gap-2">
+            {/* Previous */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(Math.max(1, safePage - 1))}
+              disabled={safePage === 1}
+            >
+              ← Previous
+            </Button>
+
+            {/* Pages */}
+            <div className="flex gap-1">
+              {pages.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => goToPage(p)}
+                  className={`h-8 w-8 rounded-lg text-xs font-medium ${
+                    safePage === p
+                      ? "bg-emerald-600 text-white"
+                      : "bg-white border border-slate-200"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            {/* Next */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(Math.min(totalPages, safePage + 1))}
+              disabled={safePage === totalPages}
+            >
+              Next →
+            </Button>
           </div>
-
-          {/* Next */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => goToPage(Math.min(totalPages, page + 1))}
-            disabled={page === totalPages}
-          >
-            Next →
-          </Button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
