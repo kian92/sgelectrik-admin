@@ -52,7 +52,18 @@ interface DealerAnalytics {
   whatsapp_click: number;
   get_deal_click: number;
   dealer_view: number;
+  rental_profile_view: number;
+  rental_view: number;
+  rental_enquiry_open: number;
+  rental_whatsapp_click: number;
   perCar: CarAnalytics[];
+  perRental: {
+    carId: number;
+    carName: string;
+    rental_view: number;
+    rental_enquiry_open: number;
+    rental_whatsapp_click: number;
+  }[];
 }
 
 interface RecentLead {
@@ -241,6 +252,38 @@ export default function DealerDashboard() {
             color: "text-rose-600",
             bg: "bg-rose-50",
           },
+          ...(dealer.services?.includes("rentals")
+            ? [
+                {
+                  label: "Rental profile views",
+                  value: analytics?.rental_profile_view ?? "—",
+                  icon: Building2,
+                  color: "text-violet-600",
+                  bg: "bg-violet-50",
+                },
+                {
+                  label: "Rental listing views",
+                  value: analytics?.rental_view ?? "—",
+                  icon: Car,
+                  color: "text-indigo-600",
+                  bg: "bg-indigo-50",
+                },
+                {
+                  label: "Rental enquiries",
+                  value: analytics?.rental_enquiry_open ?? "—",
+                  icon: Users,
+                  color: "text-amber-600",
+                  bg: "bg-amber-50",
+                },
+                {
+                  label: "Rental WhatsApp clicks",
+                  value: analytics?.rental_whatsapp_click ?? "—",
+                  icon: MessageCircle,
+                  color: "text-teal-600",
+                  bg: "bg-teal-50",
+                },
+              ]
+            : []),
         ].map(({ label, value, caption, icon: Icon, color, bg }) => (
           <Card key={label} className="border-0 shadow-sm">
             <CardContent className="p-5">
@@ -461,6 +504,64 @@ export default function DealerDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {dealer.services?.includes("rentals") && (
+        <Card className="border-0 shadow-sm mt-5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-semibold">
+              Rental performance
+            </CardTitle>
+            <p className="text-xs text-slate-400">
+              Last {analytics?.windowDays ?? 30} days · sorted by most viewed
+            </p>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-slate-400 text-sm py-4 text-center">
+                Loading...
+              </p>
+            ) : analytics?.perRental?.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-slate-400 border-b border-slate-100">
+                      <th className="pb-2 font-medium">Rental car</th>
+                      <th className="pb-2 font-medium text-right">Views</th>
+                      <th className="pb-2 font-medium text-right">Enquiries</th>
+                      <th className="pb-2 font-medium text-right">WhatsApp</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics.perRental.map((car) => (
+                      <tr
+                        key={car.carId}
+                        className="border-b border-slate-50 last:border-0"
+                      >
+                        <td className="py-2 font-medium text-slate-700">
+                          {car.carName}
+                        </td>
+                        <td className="py-2 text-right text-slate-600">
+                          {car.rental_view}
+                        </td>
+                        <td className="py-2 text-right text-slate-600">
+                          {car.rental_enquiry_open}
+                        </td>
+                        <td className="py-2 text-right text-slate-600">
+                          {car.rental_whatsapp_click}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-slate-400 text-sm py-4 text-center">
+                No rental activity yet
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

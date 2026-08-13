@@ -17,6 +17,17 @@ const EVENT_TYPES = [
   "dealer_view",
 ] as const;
 const PER_CAR_TYPES = ["car_view", "whatsapp_click", "get_deal_click"] as const;
+const RENTAL_TYPES = [
+  "rental_profile_view",
+  "rental_view",
+  "rental_enquiry_open",
+  "rental_whatsapp_click",
+] as const;
+const PER_RENTAL_TYPES = [
+  "rental_view",
+  "rental_enquiry_open",
+  "rental_whatsapp_click",
+] as const;
 const WINDOW_DAYS = 30;
 
 // GET /api/dealers/[id]/analytics
@@ -39,6 +50,21 @@ export async function GET(_req: NextRequest, { params }: Params) {
         .from("dealer_events")
         .select("*", { count: "exact", head: true })
         .eq("dealer_id", id)
+        .eq("type", type)
+        .gte("occurred_at", since);
+
+      if (error) throw new Error(error.message);
+      return [type, count ?? 0] as const;
+    }),
+  );
+
+  const rentalCounts = await Promise.all(
+    RENTAL_TYPES.map(async (type) => {
+      const { count, error } = await supabaseServer
+        .from("dealer_events")
+        .select("*", { count: "exact", head: true })
+        .eq("dealer_id", id)
+        .eq("vehicle_type", "rental")
         .eq("type", type)
         .gte("occurred_at", since);
 
@@ -101,6 +127,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .from("dealer_events")
     .select("car_id, type")
     .eq("dealer_id", id)
+    .in("vehicle_type", ["passenger", "commercial"])
     .not("car_id", "is", null)
     .in("type", PER_CAR_TYPES)
     .gte("occurred_at", since);
@@ -144,10 +171,63 @@ export async function GET(_req: NextRequest, { params }: Params) {
     }))
     .sort((a, b) => b.car_view - a.car_view);
 
+  const { data: rentalRows, error: rentalRowsError } = await supabaseServer
+    .from("dealer_events")
+    .select("car_id, type")
+    .eq("dealer_id", id)
+    .eq("vehicle_type", "rental")
+    .not("car_id", "is", null)
+    .in("type", PER_RENTAL_TYPES)
+    .gte("occurred_at", since);
+
+  if (rentalRowsError) throw new Error(rentalRowsError.message);
+
+  const byRental = new Map<
+    string,
+    {
+      rental_view: number;
+      rental_enquiry_open: number;
+      rental_whatsapp_click: number;
+    }
+  >();
+  for (const row of rentalRows ?? []) {
+    const carId = String(row.car_id);
+    const values = byRental.get(carId) ?? {
+      rental_view: 0,
+      rental_enquiry_open: 0,
+      rental_whatsapp_click: 0,
+    };
+    values[row.type as (typeof PER_RENTAL_TYPES)[number]] += 1;
+    byRental.set(carId, values);
+  }
+
+  const rentalIds = [...byRental.keys()];
+  const rentalNames = new Map<string, string>();
+  if (rentalIds.length > 0) {
+    const { data: rentalCars, error: rentalCarsError } = await supabaseServer
+      .from("rental_company_fleet")
+      .select("id, model")
+      .in("id", rentalIds);
+    if (rentalCarsError) throw new Error(rentalCarsError.message);
+    for (const car of rentalCars ?? []) {
+      rentalNames.set(String(car.id), car.model);
+    }
+  }
+
+  const perRental = rentalIds
+    .map((carId) => ({
+      carId,
+      carName: rentalNames.get(carId) ?? `Rental #${carId}`,
+      ...byRental.get(carId)!,
+    }))
+    .sort((a, b) => b.rental_view - a.rental_view);
+
   return NextResponse.json({
     windowDays: WINDOW_DAYS,
     ...Object.fromEntries(counts),
+    ...Object.fromEntries(rentalCounts),
     car_favorited: carFavorited,
     perCar,
+    perRental,
   });
 }
