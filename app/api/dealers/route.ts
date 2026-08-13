@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
     latitude,
     longitude,
     logo_url,
+    services,
   } = body;
 
   if (!slug || !name || !email || !address) {
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
       latitude: latitude ?? null,
       longitude: longitude ?? null,
       logo_url: logo_url ?? null,
+      services: services ?? undefined,
     })
     .select()
     .single();

@@ -61,7 +61,7 @@ export const authOptions: NextAuthOptions = {
         const { data } = await supabaseServer
           .from("dealers")
           .select(
-            "id, name, email, role, status, slug, short_name, area, phone, avatar_url",
+            "id, name, email, role, status, slug, short_name, area, phone, avatar_url, services",
           )
           .eq("id", token.dbId)
           .single();
@@ -78,6 +78,7 @@ export const authOptions: NextAuthOptions = {
           token.area = data.area ?? null;
           token.phone = data.phone ?? null;
           token.avatar = data.avatar_url ?? null;
+          token.services = data.services ?? [];
         }
       }
 
@@ -95,6 +96,7 @@ export const authOptions: NextAuthOptions = {
         session.user.area = token.area as string | null;
         session.user.phone = token.phone as string | null;
         session.user.avatar = token.avatar as string | null;
+        session.user.services = token.services as string[];
         session.user.provider = token.provider as string;
       }
 

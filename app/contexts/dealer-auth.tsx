@@ -16,6 +16,7 @@ type Dealer = {
   area?: string | null;
   phone?: string | null;
   avatar?: string | null;
+  services?: string[];
   provider?: string;
 };
 
@@ -50,6 +51,7 @@ export function DealerAuthProvider({ children }: { children: ReactNode }) {
           area: user.area ?? null,
           phone: user.phone ?? null,
           avatar: user.avatar ?? null,
+          services: user.services ?? [],
           provider: user.provider ?? undefined,
         }
       : null;

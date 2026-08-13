@@ -30,6 +30,13 @@ import { ImageUpload } from "@/components/FileUpload";
 
 const AREA_OPTIONS = ["Central", "North", "South", "East", "West"];
 
+const SERVICE_OPTIONS = [
+  { value: "car_sales", label: "Car Sales" },
+  { value: "rentals", label: "Rentals" },
+  { value: "workshops", label: "Workshops" },
+  { value: "commercial_evs", label: "Commercial EVs" },
+];
+
 interface CarOption {
   id: number;
   name: string;
@@ -60,6 +67,7 @@ interface DealerDB {
   latitude: number | null;
   longitude: number | null;
   logo_url: string | null;
+  services: string[];
   created_at: string;
   updated_at: string;
 }
@@ -85,6 +93,7 @@ interface DealerForm {
   longitude: string;
   car_ids: number[];
   logo_url: string;
+  services: string[];
 }
 interface Props {
   initialDealers: DealerDB[];
@@ -115,6 +124,7 @@ const EMPTY_FORM: DealerForm = {
   longitude: "",
   car_ids: [],
   logo_url: "",
+  services: SERVICE_OPTIONS.map((s) => s.value),
 };
 
 function toForm(d: DealerDB): DealerForm {
@@ -139,6 +149,7 @@ function toForm(d: DealerDB): DealerForm {
     longitude: d.longitude != null ? String(d.longitude) : "",
     car_ids: Array.isArray(d.car_ids) ? d.car_ids.map(Number) : [],
     logo_url: d.logo_url ?? "",
+    services: Array.isArray(d.services) ? d.services : [],
   };
 }
 
@@ -179,6 +190,7 @@ function toPayload(f: DealerForm) {
         ? parseFloat(f.longitude)
         : null,
     logo_url: f.logo_url.trim() || null,
+    services: f.services,
   };
 }
 
@@ -222,7 +234,10 @@ function DealerModal({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  function set(field: keyof Omit<DealerForm, "car_ids">, value: string) {
+  function set(
+    field: keyof Omit<DealerForm, "car_ids" | "services">,
+    value: string,
+  ) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
@@ -232,6 +247,15 @@ function DealerModal({
       car_ids: prev.car_ids.includes(carId)
         ? prev.car_ids.filter((id) => id !== carId)
         : [...prev.car_ids, carId],
+    }));
+  }
+
+  function toggleService(value: string) {
+    setForm((prev) => ({
+      ...prev,
+      services: prev.services.includes(value)
+        ? prev.services.filter((s) => s !== value)
+        : [...prev.services, value],
     }));
   }
 
@@ -516,6 +540,29 @@ function DealerModal({
               onChange={(e) => set("certifications", e.target.value)}
               placeholder="ISO 9001, BYD Certified"
             />
+          </Field>
+
+          <Field label="Services offered">
+            <div className="flex flex-wrap gap-2">
+              {SERVICE_OPTIONS.map((service) => (
+                <button
+                  key={service.value}
+                  type="button"
+                  onClick={() => toggleService(service.value)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    form.services.includes(service.value)
+                      ? "bg-emerald-600 text-white border-emerald-600"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  {service.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Controls which sections (My Cars, My Rentals, Workshops,
+              Commercial EVs) this dealer sees in their sidebar.
+            </p>
           </Field>
 
           <Field label="Cars sold by this dealer">

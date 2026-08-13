@@ -11,19 +11,19 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-async function getDealerIdByEmail(email: string): Promise<number | null> {
+async function getDealerByEmail(email: string) {
   const { data, error } = await supabaseServer
     .from("dealers")
-    .select("id")
+    .select("id, name, website, phone, area")
     .eq("email", email)
     .eq("role", "dealer")
     .maybeSingle();
 
   if (error) {
-    console.error("getDealerIdByEmail:", error.message);
+    console.error("getDealerByEmail:", error.message);
     return null;
   }
-  return data?.id ?? null;
+  return data;
 }
 
 async function getRentalCompany(id: string, dealerId: number) {
@@ -47,10 +47,10 @@ export default async function DealerEditRentalPage({ params }: Props) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) redirect("/backoffice-login");
 
-  const dealerId = await getDealerIdByEmail(session.user.email);
-  if (!dealerId) redirect("/backoffice-login");
+  const dealer = await getDealerByEmail(session.user.email);
+  if (!dealer) redirect("/backoffice-login");
 
-  const company = await getRentalCompany(id, dealerId);
+  const company = await getRentalCompany(id, dealer.id);
   if (!company) notFound();
 
   return (
@@ -60,7 +60,13 @@ export default async function DealerEditRentalPage({ params }: Props) {
       dealers={[]}
       isAdmin={false}
       backHref="/dealer/rentals"
-      fixedDealerId={dealerId}
+      fixedDealerId={dealer.id}
+      dealerInfo={{
+        name: dealer.name ?? "",
+        website: dealer.website ?? "",
+        phone: dealer.phone ?? "",
+        area: dealer.area ?? "",
+      }}
     />
   );
 }

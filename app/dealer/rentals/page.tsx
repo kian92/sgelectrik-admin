@@ -13,7 +13,7 @@ export interface RentalCompany {
   id: number;
   slug: string;
   name: string;
-  type: string;
+  types: string[];
   area: string;
   priceFrom: string;
   pricePeriod: string;
@@ -64,7 +64,7 @@ async function getRentalsByDealerId(
     id: c.id,
     slug: c.slug,
     name: c.name,
-    type: c.type,
+    types: c.types ?? (c.type ? [c.type] : []),
     area: c.area,
     priceFrom: c.price_from,
     pricePeriod: c.price_period,

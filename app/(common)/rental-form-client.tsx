@@ -40,10 +40,17 @@ interface FleetItem {
   bodyType: string;
 }
 
+const RENTAL_TYPE_OPTIONS = [
+  "Car Sharing",
+  "Subscription",
+  "Long-term Lease",
+  "Short-term Rental",
+];
+
 interface FormState {
   name: string;
   slug: string;
-  type: string;
+  types: string[];
   tagline: string;
   description: string;
   area: string;
@@ -70,6 +77,12 @@ interface Props {
   isAdmin: boolean;
   backHref: string;
   fixedDealerId?: number;
+  dealerInfo?: {
+    name: string;
+    website: string;
+    phone: string;
+    area: string;
+  };
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -89,7 +102,7 @@ const EMPTY_FLEET: FleetItem = {
 const EMPTY: FormState = {
   name: "",
   slug: "",
-  type: "Short-term Rental",
+  types: ["Short-term Rental"],
   tagline: "",
   description: "",
   area: "",
@@ -135,15 +148,34 @@ export function RentalFormClient({
   isAdmin,
   backHref,
   fixedDealerId,
+  dealerInfo,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [form, setForm] = useState<FormState>(EMPTY);
+  const [form, setForm] = useState<FormState>(() =>
+    !isAdmin && dealerInfo && !initialData
+      ? {
+          ...EMPTY,
+          name: dealerInfo.name,
+          website: dealerInfo.website,
+          phone: dealerInfo.phone,
+          area: dealerInfo.area,
+        }
+      : EMPTY,
+  );
   const [autoSlug, setAutoSlug] = useState(!editingId);
   const [error, setError] = useState<string | null>(null);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
+
+  const toggleType = (v: string) =>
+    setForm((f) => ({
+      ...f,
+      types: f.types.includes(v)
+        ? f.types.filter((t) => t !== v)
+        : [...f.types, v],
+    }));
 
   const setFleet = (i: number, k: keyof FleetItem, v: string) =>
     setForm((f) => ({
@@ -160,17 +192,21 @@ export function RentalFormClient({
   useEffect(() => {
     if (!initialData) return;
     setForm({
-      name: initialData.name ?? "",
+      name: initialData.name ?? dealerInfo?.name ?? "",
       slug: initialData.slug ?? "",
-      type: initialData.type ?? "Short-term Rental",
+      types: Array.isArray(initialData.types) && initialData.types.length > 0
+        ? initialData.types
+        : initialData.type
+          ? [initialData.type]
+          : ["Short-term Rental"],
       tagline: initialData.tagline ?? "",
       description: initialData.description ?? "",
-      area: initialData.area ?? "",
+      area: initialData.area ?? dealerInfo?.area ?? "",
       priceFrom: initialData.price_from ?? "",
       pricePeriod: initialData.price_period ?? "/day",
       featuresText: parseFeatures(initialData.features ?? "[]"),
-      website: initialData.website ?? "",
-      phone: initialData.phone ?? "",
+      website: initialData.website ?? dealerInfo?.website ?? "",
+      phone: initialData.phone ?? dealerInfo?.phone ?? "",
       rating: String(initialData.rating ?? "0.0"),
       reviewCount: String(initialData.review_count ?? 0),
       minTerm: initialData.min_term ?? "",
@@ -194,14 +230,16 @@ export function RentalFormClient({
           }))
         : [],
     });
-  }, [initialData]);
+  }, [initialData, dealerInfo]);
 
   // Auto-slug from name
   useEffect(() => {
     if (autoSlug && !editingId) set("slug", slugify(form.name));
   }, [form.name, autoSlug, editingId]);
 
-  const isValid = form.name.trim().length > 0 && form.slug.trim().length > 0;
+  const isValid =
+    (isAdmin ? form.name.trim().length > 0 && form.slug.trim().length > 0 : true) &&
+    form.types.length > 0;
 
   function buildPayload() {
     const features = form.featuresText
@@ -214,17 +252,21 @@ export function RentalFormClient({
         : form.dealerIdAdmin
           ? Number(form.dealerIdAdmin)
           : undefined,
-      name: form.name.trim(),
-      slug: form.slug.trim(),
-      type: form.type,
+      ...(isAdmin
+        ? {
+            name: form.name.trim(),
+            slug: form.slug.trim(),
+            website: form.website,
+            phone: form.phone,
+            area: form.area,
+          }
+        : {}),
+      types: form.types,
       tagline: form.tagline,
       description: form.description,
-      area: form.area,
       price_from: form.priceFrom,
       price_period: form.pricePeriod,
       features: JSON.stringify(features),
-      website: form.website,
-      phone: form.phone,
       rating: parseFloat(form.rating) || 0,
       review_count: parseInt(form.reviewCount) || 0,
       min_term: form.minTerm,
@@ -324,53 +366,60 @@ export function RentalFormClient({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-1.5">
-                <Label>Company name *</Label>
-                <Input
-                  value={form.name}
-                  onChange={(e) => set("name", e.target.value)}
-                  placeholder="Tribecar EV"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Slug *</Label>
-                <Input
-                  value={form.slug}
-                  onChange={(e) => {
-                    setAutoSlug(false);
-                    set("slug", e.target.value);
-                  }}
-                  placeholder="tribecar-ev"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-1.5">
-                <Label>Type *</Label>
-                <Select value={form.type} onValueChange={(v) => set("type", v)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Car Sharing">Car Sharing</SelectItem>
-                    <SelectItem value="Subscription">Subscription</SelectItem>
-                    <SelectItem value="Long-term Lease">
-                      Long-term Lease
-                    </SelectItem>
-                    <SelectItem value="Short-term Rental">
-                      Short-term Rental
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Area</Label>
-                <Input
-                  value={form.area}
-                  onChange={(e) => set("area", e.target.value)}
-                  placeholder="Islandwide"
-                />
+            {isAdmin ? (
+              <>
+                <div className="grid grid-cols-2 gap-5">
+                  <div className="space-y-1.5">
+                    <Label>Company name *</Label>
+                    <Input
+                      value={form.name}
+                      onChange={(e) => set("name", e.target.value)}
+                      placeholder="Tribecar EV"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Slug *</Label>
+                    <Input
+                      value={form.slug}
+                      onChange={(e) => {
+                        setAutoSlug(false);
+                        set("slug", e.target.value);
+                      }}
+                      placeholder="tribecar-ev"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Area</Label>
+                  <Input
+                    value={form.area}
+                    onChange={(e) => set("area", e.target.value)}
+                    placeholder="Islandwide"
+                  />
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-slate-500">
+                Listed under: <span className="font-medium text-slate-700">{form.name}</span>
+              </p>
+            )}
+            <div className="space-y-1.5">
+              <Label>Type *</Label>
+              <div className="flex flex-wrap gap-2">
+                {RENTAL_TYPE_OPTIONS.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => toggleType(t)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      form.types.includes(t)
+                        ? "bg-emerald-600 text-white border-emerald-600"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
               </div>
             </div>
             <div className="space-y-1.5">
@@ -503,24 +552,26 @@ export function RentalFormClient({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-1.5">
-                <Label>Website</Label>
-                <Input
-                  value={form.website}
-                  onChange={(e) => set("website", e.target.value)}
-                  placeholder="https://..."
-                />
+            {isAdmin && (
+              <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <Label>Website</Label>
+                  <Input
+                    value={form.website}
+                    onChange={(e) => set("website", e.target.value)}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Phone</Label>
+                  <Input
+                    value={form.phone}
+                    onChange={(e) => set("phone", e.target.value)}
+                    placeholder="6123 4567"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Phone</Label>
-                <Input
-                  value={form.phone}
-                  onChange={(e) => set("phone", e.target.value)}
-                  placeholder="6123 4567"
-                />
-              </div>
-            </div>
+            )}
             <div className="grid grid-cols-2 gap-5">
               <div className="space-y-1.5">
                 <Label>Rating (0–5)</Label>

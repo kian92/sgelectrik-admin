@@ -23,7 +23,7 @@ export async function GET() {
     slug: c.slug,
     dealerId: c.dealer_id,
     name: c.name,
-    type: c.type,
+    types: c.types ?? (c.type ? [c.type] : []),
     tagline: c.tagline,
     description: c.description,
     area: c.area,
@@ -50,22 +50,40 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { fleet, ...companyFields } = body;
 
+  // When the dealer-facing form omits identity fields (name/slug/website/
+  // phone/area), derive them from the owning dealer's own record.
+  let { name, slug, website, phone, area } = companyFields;
+  if (!name && companyFields.dealer_id) {
+    const { data: dealerRow } = await supabaseServer
+      .from("dealers")
+      .select("name, slug, website, phone, area")
+      .eq("id", companyFields.dealer_id)
+      .maybeSingle();
+    if (dealerRow) {
+      name = dealerRow.name;
+      slug = slug || `${dealerRow.slug}-rental`;
+      website = website || dealerRow.website;
+      phone = phone || dealerRow.phone;
+      area = area || dealerRow.area;
+    }
+  }
+
   // 1. Insert company
   const { data: company, error: companyError } = await supabaseServer
     .from("rental_companies")
     .insert({
-      slug: companyFields.slug,
+      slug,
       dealer_id: companyFields.dealer_id,
-      name: companyFields.name,
-      type: companyFields.type,
+      name,
+      types: companyFields.types ?? [],
       tagline: companyFields.tagline ?? "",
       description: companyFields.description ?? "",
-      area: companyFields.area ?? "",
+      area: area ?? "",
       price_from: companyFields.price_from ?? "",
       price_period: companyFields.price_period ?? "",
       features: companyFields.features ?? "[]",
-      website: companyFields.website ?? "",
-      phone: companyFields.phone ?? "",
+      website: website ?? "",
+      phone: phone ?? "",
       rating: companyFields.rating ?? 0,
       review_count: companyFields.review_count ?? 0,
       min_term: companyFields.min_term ?? "",
@@ -76,6 +94,13 @@ export async function POST(req: Request) {
     })
     .select()
     .single();
+
+  if (companyError?.code === "23505") {
+    return NextResponse.json(
+      { error: "A rental company with this slug already exists." },
+      { status: 409 },
+    );
+  }
 
   if (companyError) {
     console.error("POST rental-companies:", companyError.message);

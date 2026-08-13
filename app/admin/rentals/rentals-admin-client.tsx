@@ -35,7 +35,7 @@ export default function RentalsAdminClient({
     if (!q) return companies;
     return companies.filter((c) => {
       const fleetModels = (c.fleet ?? []).map((f) => f.model).join(" ");
-      const haystack = [c.name, c.type, c.area, fleetModels]
+      const haystack = [c.name, ...(c.types ?? []), c.area, fleetModels]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -171,7 +171,9 @@ export default function RentalsAdminClient({
                     <p className="font-semibold text-slate-900 truncate">
                       {c.name}
                     </p>
-                    <p className="text-xs text-slate-500 mt-0.5">{c.type}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {c.types?.join(", ")}
+                    </p>
                   </div>
                   <Badge variant="secondary" className="text-xs flex-shrink-0">
                     {c.fleet?.length ?? 0} cars

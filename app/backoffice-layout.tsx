@@ -57,11 +57,27 @@ const EDITOR_NAV = [
 
 const DEALER_NAV = [
   { href: "/dealer/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dealer/cars", label: "My Cars", icon: Car, chooser: true },
-  { href: "/dealer/rentals", label: "My Rentals", icon: Car },
+  {
+    href: "/dealer/cars",
+    label: "My Cars",
+    icon: Car,
+    chooser: true,
+    service: "car_sales",
+  },
+  { href: "/dealer/rentals", label: "My Rentals", icon: Car, service: "rentals" },
   { href: "/dealer/leads", label: "My Leads", icon: Users },
-  { href: "/dealer/workshops", label: "Workshops", icon: Wrench },
-  { href: "/dealer/commercial-evs", label: "Commercial EVs", icon: Truck },
+  {
+    href: "/dealer/workshops",
+    label: "Workshops",
+    icon: Wrench,
+    service: "workshops",
+  },
+  {
+    href: "/dealer/commercial-evs",
+    label: "Commercial EVs",
+    icon: Truck,
+    service: "commercial_evs",
+  },
   { href: "/dealer/promotions", label: "My Promotions", icon: Tag },
   { href: "/dealer/settings", label: "Settings", icon: Settings },
 ];
@@ -76,12 +92,20 @@ function Sidebar({
   const { dealer, isAdmin } = useDealerAuth();
   const pathname = usePathname();
   const isEditor = dealer?.role === "editor";
-  const nav: {
+  const rawNav: {
     href: string;
     label: string;
     icon: typeof Car;
     chooser?: boolean;
+    service?: string;
   }[] = isEditor ? EDITOR_NAV : isAdmin ? ADMIN_NAV : DEALER_NAV;
+  const nav =
+    isEditor || isAdmin
+      ? rawNav
+      : rawNav.filter(
+          (item) => !item.service || dealer?.services?.includes(item.service),
+        );
+  const hasCommercialEvs = dealer?.services?.includes("commercial_evs");
   const [chooserOpen, setChooserOpen] = useState(false);
 
   return (
@@ -149,7 +173,8 @@ function Sidebar({
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {nav.map(({ href, label, icon: Icon, chooser }) => {
-          const active = chooser
+          const useChooser = chooser && hasCommercialEvs;
+          const active = useChooser
             ? pathname.startsWith("/dealer/cars") || pathname.startsWith("/dealer/commercial-evs")
             : pathname === href || pathname.startsWith(href + "/");
           const itemClass = cn(
@@ -158,7 +183,7 @@ function Sidebar({
               ? "bg-emerald-500/15 text-emerald-400"
               : "text-slate-400 hover:bg-slate-800 hover:text-white",
           );
-          if (chooser) {
+          if (useChooser) {
             return (
               <button
                 key={href}

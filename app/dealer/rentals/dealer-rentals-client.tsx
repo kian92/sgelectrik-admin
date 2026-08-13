@@ -122,7 +122,9 @@ export default function DealerRentalsClient({
                     <p className="font-semibold text-slate-900 truncate">
                       {c.name}
                     </p>
-                    <p className="text-xs text-slate-500 mt-0.5">{c.type}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {c.types?.join(", ")}
+                    </p>
                   </div>
                   <Badge variant="secondary" className="text-xs flex-shrink-0">
                     {c.fleet?.length ?? 0} cars

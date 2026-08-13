@@ -15,6 +15,7 @@ declare module "next-auth" {
       area?: string | null;
       phone?: string | null;
       avatar?: string | null;
+      services?: string[];
       provider?: string;
     };
   }
@@ -30,6 +31,7 @@ declare module "next-auth/jwt" {
     area?: string | null;
     phone?: string | null;
     avatar?: string | null;
+    services?: string[];
     provider?: string;
   }
 }

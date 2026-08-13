@@ -11,7 +11,7 @@ export interface RentalCompany {
   slug: string;
   dealerId: number;
   name: string;
-  type: string;
+  types: string[];
   area: string;
   priceFrom: string;
   pricePeriod: string;
@@ -40,7 +40,7 @@ async function getRentalCompanies(): Promise<RentalCompany[]> {
     slug: c.slug,
     dealerId: c.dealer_id,
     name: c.name,
-    type: c.type,
+    types: c.types ?? (c.type ? [c.type] : []),
     area: c.area,
     priceFrom: c.price_from,
     pricePeriod: c.price_period,
