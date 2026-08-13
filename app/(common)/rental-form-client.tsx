@@ -165,6 +165,7 @@ export function RentalFormClient({
   );
   const [autoSlug, setAutoSlug] = useState(!editingId);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -321,32 +322,67 @@ export function RentalFormClient({
     });
   }
 
-  const title = editingId ? "Edit Rental Company" : "Add Rental Company";
+  async function handleDeleteListing() {
+    if (!editingId) return;
+    if (
+      !confirm(
+        "Remove your rental listing? This will also delete your fleet cars and cannot be undone.",
+      )
+    )
+      return;
+
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/rental-companies/${editingId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to remove listing");
+      router.push(backHref);
+      router.refresh();
+    } catch (e: any) {
+      setError(e.message ?? "Something went wrong");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const title = isAdmin
+    ? editingId
+      ? "Edit Rental Company"
+      : "Add Rental Company"
+    : editingId
+      ? "Your Rental Listing"
+      : "Set Up Your Rental Listing";
+
+  const subtitle = isAdmin
+    ? "Admin · manage any rental company"
+    : editingId
+      ? "Manage your rental listing"
+      : "List your fleet so customers can find and rent EVs";
 
   return (
     <div className="max-w-full mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <Link href={backHref}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2 text-slate-500 hover:text-slate-700 -ml-2 mb-4"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to Rentals
-          </Button>
-        </Link>
+        {isAdmin && (
+          <Link href={backHref}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-slate-500 hover:text-slate-700 -ml-2 mb-4"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back to Rentals
+            </Button>
+          </Link>
+        )}
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center">
             <Car className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
-            <p className="text-slate-500 text-sm mt-0.5">
-              {isAdmin
-                ? "Admin · manage any rental company"
-                : "Manage your rental listing"}
-            </p>
+            <p className="text-slate-500 text-sm mt-0.5">{subtitle}</p>
           </div>
         </div>
       </div>
@@ -429,6 +465,10 @@ export function RentalFormClient({
                 onChange={(e) => set("tagline", e.target.value)}
                 placeholder="Drive an EV without owning one"
               />
+              <p className="text-xs text-slate-400">
+                A short one-line hook shown on your public listing card,
+                separate from the longer description below.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label>Description</Label>
@@ -743,11 +783,25 @@ export function RentalFormClient({
 
         {/* Footer actions */}
         <div className="flex items-center justify-between gap-4 pb-8">
-          <Link href={backHref}>
-            <Button variant="outline" size="lg">
-              Cancel
+          {isAdmin ? (
+            <Link href={backHref}>
+              <Button variant="outline" size="lg">
+                Cancel
+              </Button>
+            </Link>
+          ) : editingId ? (
+            <Button
+              variant="ghost"
+              size="lg"
+              disabled={deleting}
+              onClick={handleDeleteListing}
+              className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            >
+              {deleting ? "Removing…" : "Remove rental listing"}
             </Button>
-          </Link>
+          ) : (
+            <div />
+          )}
           <Button
             size="lg"
             className="gap-2 px-8"
@@ -759,7 +813,13 @@ export function RentalFormClient({
             ) : (
               <>
                 <CheckCircle2 className="h-4 w-4" />
-                {editingId ? "Save changes" : "Create rental"}
+                {isAdmin
+                  ? editingId
+                    ? "Save changes"
+                    : "Create rental"
+                  : editingId
+                    ? "Save changes"
+                    : "Save listing"}
               </>
             )}
           </Button>

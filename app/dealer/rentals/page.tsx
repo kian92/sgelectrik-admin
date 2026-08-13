@@ -3,89 +3,64 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { supabaseServer } from "@/app/lib/supabase-server";
-import DealerRentalsClient from "./dealer-rentals-client";
+import { RentalFormClient } from "@/app/(common)/rental-form-client";
 
 export const metadata: Metadata = {
   title: "My EV Rentals | SGElectrik Backoffice",
 };
 
-export interface RentalCompany {
-  id: number;
-  slug: string;
-  name: string;
-  types: string[];
-  area: string;
-  priceFrom: string;
-  pricePeriod: string;
-  rating: number;
-  reviewCount: number;
-  fleet: Array<{ id: number; model: string }>;
-}
-
-async function getDealerIdByEmail(email: string): Promise<number | null> {
+async function getDealerByEmail(email: string) {
   const { data, error } = await supabaseServer
     .from("dealers")
-    .select("id")
+    .select("id, name, website, phone, area")
     .eq("email", email)
     .eq("role", "dealer")
     .maybeSingle();
 
   if (error) {
-    console.error("getDealerIdByEmail:", error.message);
+    console.error("getDealerByEmail:", error.message);
     return null;
   }
-  return data?.id ?? null;
+  return data;
 }
 
-async function getRentalsByDealerId(
-  dealerId: number,
-): Promise<RentalCompany[]> {
-  const { data: companies, error } = await supabaseServer
+async function getRentalCompanyByDealerId(dealerId: number) {
+  const { data, error } = await supabaseServer
     .from("rental_companies")
-    .select("*")
+    .select("*, rental_company_fleet(*)")
     .eq("dealer_id", dealerId)
-    .order("created_at", { ascending: false });
+    .maybeSingle();
 
   if (error) {
-    console.error("getRentalsByDealerId:", error.message);
-    return [];
+    console.error("getRentalCompanyByDealerId:", error.message);
+    return null;
   }
-  if (!companies?.length) return [];
-
-  const { data: fleet } = await supabaseServer
-    .from("rental_company_fleet")
-    .select("id, rental_company_id, model")
-    .in(
-      "rental_company_id",
-      companies.map((c) => c.id),
-    );
-
-  return companies.map((c) => ({
-    id: c.id,
-    slug: c.slug,
-    name: c.name,
-    types: c.types ?? (c.type ? [c.type] : []),
-    area: c.area,
-    priceFrom: c.price_from,
-    pricePeriod: c.price_period,
-    rating: Number(c.rating),
-    reviewCount: c.review_count,
-    fleet: (fleet ?? [])
-      .filter((f) => f.rental_company_id === c.id)
-      .map((f) => ({ id: f.id, model: f.model })),
-  }));
+  return data;
 }
 
 export default async function DealerRentalsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) redirect("/backoffice-login");
 
-  const dealerId = await getDealerIdByEmail(session.user.email);
-  if (!dealerId) redirect("/backoffice-login");
+  const dealer = await getDealerByEmail(session.user.email);
+  if (!dealer) redirect("/backoffice-login");
 
-  const companies = await getRentalsByDealerId(dealerId);
+  const company = await getRentalCompanyByDealerId(dealer.id);
 
   return (
-    <DealerRentalsClient initialCompanies={companies} dealerId={dealerId} />
+    <RentalFormClient
+      editingId={company?.id ?? null}
+      initialData={company}
+      dealers={[]}
+      isAdmin={false}
+      backHref="/dealer/rentals"
+      fixedDealerId={dealer.id}
+      dealerInfo={{
+        name: dealer.name ?? "",
+        website: dealer.website ?? "",
+        phone: dealer.phone ?? "",
+        area: dealer.area ?? "",
+      }}
+    />
   );
 }
