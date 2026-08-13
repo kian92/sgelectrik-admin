@@ -43,12 +43,19 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .eq("dealer_id", id);
   const commercialEvs = commercialEvsData ?? [];
 
+  const { data: rentalCompanyData } = await supabaseServer
+    .from("rental_companies")
+    .select("id, name, slug")
+    .eq("dealer_id", id)
+    .maybeSingle();
+
   return NextResponse.json({
     ...data,
     brands: data.brands ?? [],
     car_ids: carIds,
     cars,
     commercial_evs: commercialEvs,
+    rental_company: rentalCompanyData ?? null,
   });
 }
 

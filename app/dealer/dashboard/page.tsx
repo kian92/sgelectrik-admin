@@ -22,6 +22,11 @@ interface DealerProfile {
   car_ids: number[] | null;
   cars: DealerCar[] | null;
   commercial_evs: DealerCar[] | null;
+  rental_company: {
+    id: number;
+    name: string;
+    slug: string;
+  } | null;
   area: string | null;
   showrooms: number;
   slug: string;
@@ -63,8 +68,9 @@ function slugify(s: string) {
 
 export default function DealerDashboard() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const { dealer, loading: dealerLoading } = useDealerAuth();
+  const dealerId = dealer?.id;
   const [profile, setProfile] = useState<DealerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<DealerAnalytics | null>(null);
@@ -79,14 +85,14 @@ export default function DealerDashboard() {
   }, [status, router]);
 
   useEffect(() => {
-    if (!dealer?.id || dealerLoading) return;
+    if (!dealerId || dealerLoading) return;
 
     async function load() {
       try {
         const [profileRes, analyticsRes, leadsRes] = await Promise.all([
-          fetch(`/api/dealers/${dealer!.id}`),
-          fetch(`/api/dealers/${dealer!.id}/analytics`),
-          fetch(`/api/dealers/${dealer!.id}/leads?limit=5`),
+          fetch(`/api/dealers/${dealerId}`),
+          fetch(`/api/dealers/${dealerId}/analytics`),
+          fetch(`/api/dealers/${dealerId}/leads?limit=5`),
         ]);
         if (profileRes.ok) setProfile(await profileRes.json());
         if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
@@ -102,7 +108,7 @@ export default function DealerDashboard() {
       }
     }
     load();
-  }, [dealer?.id, dealerLoading]);
+  }, [dealerId, dealerLoading]);
 
   // Show loading while checking session and dealer
   if (status === "loading" || dealerLoading) {
@@ -177,9 +183,16 @@ export default function DealerDashboard() {
         {[
           {
             label: "Active Listings",
-            value: (profile?.car_ids?.length ?? 0) + (profile?.commercial_evs?.length ?? 0),
+            value:
+              (profile?.car_ids?.length ?? 0) +
+              (profile?.commercial_evs?.length ?? 0) +
+              (profile?.rental_company ? 1 : 0),
             caption: profile
-              ? `${profile.car_ids?.length ?? 0} cars · ${profile.commercial_evs?.length ?? 0} commercial EVs`
+              ? [
+                  `${profile.car_ids?.length ?? 0} cars`,
+                  `${profile.commercial_evs?.length ?? 0} commercial EVs`,
+                  ...(profile.rental_company ? ["1 rental profile"] : []),
+                ].join(" · ")
               : undefined,
             icon: Car,
             color: "text-blue-600",
@@ -253,7 +266,9 @@ export default function DealerDashboard() {
               <p className="text-slate-400 text-sm py-4 text-center">
                 Loading...
               </p>
-            ) : (profile?.car_ids?.length || profile?.commercial_evs?.length) ? (
+            ) : (profile?.car_ids?.length ||
+                profile?.commercial_evs?.length ||
+                profile?.rental_company) ? (
               <div className="space-y-2 mb-4">
                 {(profile.car_ids ?? []).map((id) => {
                   const car = profile.cars?.find((c) => c.id === id);
@@ -311,6 +326,26 @@ export default function DealerDashboard() {
                     </div>
                   );
                 })}
+                {profile.rental_company && (
+                  <div className="flex items-center justify-between py-1.5 px-3 rounded-xl bg-slate-50">
+                    <div className="flex items-center gap-2">
+                      <Car className="h-4 w-4 text-slate-400" />
+                      <span className="text-sm font-medium text-slate-700">
+                        {profile.rental_company.name}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wide text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                        Rental
+                      </span>
+                    </div>
+                    <Link
+                      href={`${process.env.NEXT_PUBLIC_USER_URL}/ev-rentals/${profile.rental_company.slug}`}
+                      target="_blank"
+                      className="text-xs text-emerald-600 hover:underline"
+                    >
+                      View
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-slate-400 text-sm py-4 text-center">
