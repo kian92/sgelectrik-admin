@@ -47,8 +47,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const { fleet, ...companyFields } = body;
+  const companyFields = await req.json();
 
   // When the dealer-facing form omits identity fields (name/slug/website/
   // phone/area), derive them from the owning dealer's own record.
@@ -105,31 +104,6 @@ export async function POST(req: Request) {
   if (companyError) {
     console.error("POST rental-companies:", companyError.message);
     return NextResponse.json({ error: companyError.message }, { status: 500 });
-  }
-
-  // 2. Insert fleet rows
-  if (Array.isArray(fleet) && fleet.length > 0) {
-    const { error: fleetError } = await supabaseServer
-      .from("rental_company_fleet")
-      .insert(
-        fleet.map((f: any) => ({
-          rental_company_id: company.id,
-          model: f.model,
-          image_id: f.image_id ?? null,
-          price_from: f.price_from ?? "",
-          price_period: f.price_period ?? "",
-          range_km: f.range_km ?? 0,
-          seats: f.seats ?? 5,
-          accel: f.accel ?? "",
-          charge_time: f.charge_time ?? "",
-          body_type: f.body_type ?? "",
-        })),
-      );
-
-    if (fleetError) {
-      console.error("POST fleet insert:", fleetError.message);
-      // Company was created; don't fail the whole request
-    }
   }
 
   return NextResponse.json(company, { status: 201 });

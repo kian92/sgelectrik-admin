@@ -15,8 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ImageUpload } from "@/components/FileUpload";
-import { ArrowLeft, Car, CheckCircle2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Car, CheckCircle2 } from "lucide-react";
+import { FleetSection } from "./FleetSection";
+import type { FleetCar } from "./FleetCarCard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,19 +26,6 @@ export interface DealerOption {
   slug: string;
   name: string;
   short_name: string | null;
-}
-
-interface FleetItem {
-  id?: number; // present when editing existing fleet rows
-  model: string;
-  imageId: string;
-  priceFrom: string;
-  pricePeriod: string;
-  rangeKm: string;
-  seats: string;
-  accel: string;
-  chargeTime: string;
-  bodyType: string;
 }
 
 const RENTAL_TYPE_OPTIONS = [
@@ -67,7 +55,6 @@ interface FormState {
   includesMaintenance: boolean;
   requiresLicenseYears: string;
   dealerIdAdmin: string; // dealer id (number as string) for admin assign
-  fleet: FleetItem[];
 }
 
 interface Props {
@@ -86,18 +73,6 @@ interface Props {
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const EMPTY_FLEET: FleetItem = {
-  model: "",
-  imageId: "",
-  priceFrom: "",
-  pricePeriod: "/day",
-  rangeKm: "0",
-  seats: "5",
-  accel: "",
-  chargeTime: "",
-  bodyType: "",
-};
 
 const EMPTY: FormState = {
   name: "",
@@ -119,7 +94,6 @@ const EMPTY: FormState = {
   includesMaintenance: false,
   requiresLicenseYears: "2",
   dealerIdAdmin: "",
-  fleet: [],
 };
 
 function slugify(s: string) {
@@ -178,17 +152,6 @@ export function RentalFormClient({
         : [...f.types, v],
     }));
 
-  const setFleet = (i: number, k: keyof FleetItem, v: string) =>
-    setForm((f) => ({
-      ...f,
-      fleet: f.fleet.map((row, idx) => (idx === i ? { ...row, [k]: v } : row)),
-    }));
-
-  const addFleet = () =>
-    setForm((f) => ({ ...f, fleet: [...f.fleet, { ...EMPTY_FLEET }] }));
-  const removeFleet = (i: number) =>
-    setForm((f) => ({ ...f, fleet: f.fleet.filter((_, idx) => idx !== i) }));
-
   // Populate form when editing
   useEffect(() => {
     if (!initialData) return;
@@ -216,20 +179,6 @@ export function RentalFormClient({
       includesMaintenance: !!initialData.includes_maintenance,
       requiresLicenseYears: String(initialData.requires_license_years ?? 2),
       dealerIdAdmin: String(initialData.dealer_id ?? ""),
-      fleet: Array.isArray(initialData.rental_company_fleet)
-        ? initialData.rental_company_fleet.map((f: any) => ({
-            id: f.id,
-            model: f.model ?? "",
-            imageId: f.image_id ?? "",
-            priceFrom: f.price_from ?? "",
-            pricePeriod: f.price_period ?? "",
-            rangeKm: String(f.range_km ?? 0),
-            seats: String(f.seats ?? 5),
-            accel: f.accel ?? "",
-            chargeTime: f.charge_time ?? "",
-            bodyType: f.body_type ?? "",
-          }))
-        : [],
     });
   }, [initialData, dealerInfo]);
 
@@ -275,20 +224,6 @@ export function RentalFormClient({
       includes_insurance: form.includesInsurance,
       includes_maintenance: form.includesMaintenance,
       requires_license_years: parseInt(form.requiresLicenseYears) || 2,
-      fleet: form.fleet
-        .filter((f) => f.model.trim().length > 0)
-        .map((f) => ({
-          ...(f.id ? { id: f.id } : {}),
-          model: f.model.trim(),
-          image_id: f.imageId || null,
-          price_from: f.priceFrom,
-          price_period: f.pricePeriod,
-          range_km: parseInt(f.rangeKm) || 0,
-          seats: parseInt(f.seats) || 5,
-          accel: f.accel,
-          charge_time: f.chargeTime,
-          body_type: f.bodyType,
-        })),
     };
   }
 
@@ -648,138 +583,14 @@ export function RentalFormClient({
         </Card>
 
         {/* Fleet */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-semibold">
-              Fleet ({form.fleet.length})
-            </CardTitle>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={addFleet}
-              className="gap-1"
-            >
-              <Plus className="h-3.5 w-3.5" /> Add car
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {form.fleet.length === 0 && (
-              <p className="text-sm text-slate-400">
-                No fleet cars yet. Click "Add car" to add one.
-              </p>
-            )}
-            {form.fleet.map((f, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-slate-200 p-4 space-y-3 relative"
-              >
-                <button
-                  type="button"
-                  onClick={() => removeFleet(i)}
-                  className="absolute top-3 right-3 text-slate-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Model *</Label>
-                    <Input
-                      value={f.model}
-                      onChange={(e) => setFleet(i, "model", e.target.value)}
-                      placeholder="Tesla Model 3"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Body type</Label>
-                    <Input
-                      value={f.bodyType}
-                      onChange={(e) => setFleet(i, "bodyType", e.target.value)}
-                      placeholder="Sedan"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Price from</Label>
-                    <Input
-                      value={f.priceFrom}
-                      onChange={(e) => setFleet(i, "priceFrom", e.target.value)}
-                      placeholder="S$120"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Period</Label>
-                    <Input
-                      value={f.pricePeriod}
-                      onChange={(e) =>
-                        setFleet(i, "pricePeriod", e.target.value)
-                      }
-                      placeholder="/day"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Range (km)</Label>
-                    <Input
-                      type="number"
-                      value={f.rangeKm}
-                      onChange={(e) => setFleet(i, "rangeKm", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Seats</Label>
-                    <Input
-                      type="number"
-                      value={f.seats}
-                      onChange={(e) => setFleet(i, "seats", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">0–100 km/h</Label>
-                    <Input
-                      value={f.accel}
-                      onChange={(e) => setFleet(i, "accel", e.target.value)}
-                      placeholder="6.1s"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Charge time</Label>
-                    <Input
-                      value={f.chargeTime}
-                      onChange={(e) =>
-                        setFleet(i, "chargeTime", e.target.value)
-                      }
-                      placeholder="~30 min DC"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Vehicle Image</Label>
-                    <ImageUpload
-                      contentType="rentals"
-                      onUploadComplete={(url) => {
-                        setFleet(i, "imageId", url);
-                      }}
-                      label="Upload Vehicle Image"
-                      description="Click or drag to upload"
-                      className="mb-2"
-                    />
-                    <Label className="text-xs text-slate-500 block mb-1">
-                      Or paste URL
-                    </Label>
-                    <Input
-                      value={f.imageId}
-                      onChange={(e) => setFleet(i, "imageId", e.target.value)}
-                      placeholder="https://example.com/vehicle.jpg or image URL"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <FleetSection
+          rentalCompanyId={editingId}
+          initialFleet={
+            Array.isArray(initialData?.rental_company_fleet)
+              ? (initialData.rental_company_fleet as FleetCar[])
+              : []
+          }
+        />
 
         {/* Footer actions */}
         <div className="flex items-center justify-between gap-4 pb-8">

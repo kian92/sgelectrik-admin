@@ -26,8 +26,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const body = await req.json();
-  const { fleet, ...companyFields } = body;
+  const companyFields = await req.json();
 
   // When the dealer-facing form omits identity fields (name/slug/website/
   // phone/area), derive them from the owning dealer's own record.
@@ -78,42 +77,6 @@ export async function PUT(
   if (companyError) {
     console.error("PUT rental-companies:", companyError.message);
     return NextResponse.json({ error: companyError.message }, { status: 500 });
-  }
-
-  // 2. Replace fleet — delete existing rows then insert new ones
-  //    (cascade delete handles orphans; simpler than upsert for this use case)
-  if (Array.isArray(fleet)) {
-    await supabaseServer
-      .from("rental_company_fleet")
-      .delete()
-      .eq("rental_company_id", id);
-
-    if (fleet.length > 0) {
-      const { error: fleetError } = await supabaseServer
-        .from("rental_company_fleet")
-        .insert(
-          fleet.map((f: any) => ({
-            rental_company_id: Number(id),
-            model: f.model,
-            image_id: f.image_id ?? null,
-            price_from: f.price_from ?? "",
-            price_period: f.price_period ?? "",
-            range_km: f.range_km ?? 0,
-            seats: f.seats ?? 5,
-            accel: f.accel ?? "",
-            charge_time: f.charge_time ?? "",
-            body_type: f.body_type ?? "",
-          })),
-        );
-
-      if (fleetError) {
-        console.error("PUT fleet insert:", fleetError.message);
-        return NextResponse.json(
-          { error: fleetError.message },
-          { status: 500 },
-        );
-      }
-    }
   }
 
   return NextResponse.json(company);
