@@ -7,7 +7,16 @@ import Link from "next/link";
 import { useDealerAuth } from "@/app/contexts/dealer-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Car, Users, FileText, Building2, ExternalLink, MessageCircle, Truck, Settings } from "lucide-react";
+import {
+  Car,
+  Users,
+  FileText,
+  Building2,
+  ExternalLink,
+  MessageCircle,
+  Truck,
+  Settings,
+} from "lucide-react";
 
 interface DealerCar {
   id: number;
@@ -34,6 +43,7 @@ interface DealerProfile {
   area: string | null;
   showrooms: number;
   slug: string;
+  services: string[] | null;
 }
 
 interface CarAnalytics {
@@ -53,9 +63,7 @@ interface DealerAnalytics {
   get_deal_click: number;
   dealer_view: number;
   rental_profile_view: number;
-  rental_view: number;
   rental_enquiry_open: number;
-  rental_whatsapp_click: number;
   perCar: CarAnalytics[];
   perRental: {
     carId: number;
@@ -64,6 +72,10 @@ interface DealerAnalytics {
     rental_enquiry_open: number;
     rental_whatsapp_click: number;
   }[];
+  rental_view: number;
+  rental_car_view: number;
+  rental_whatsapp_click: number;
+  rental_enquiry: number;
 }
 
 interface RecentLead {
@@ -194,97 +206,106 @@ export default function DealerDashboard() {
 
       {/* Stat cards */}
       <p className="text-xs text-slate-400 mb-2">
-        Leads this month · Profile views, car listing views and WhatsApp clicks are from the last {analytics?.windowDays ?? 30} days · Favorited is all-time
+        Leads this month · Profile views, car listing views and WhatsApp clicks
+        are from the last {analytics?.windowDays ?? 30} days · Favorited is
+        all-time
       </p>
       <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
-        {[
-          {
-            label: "Active Listings",
-            value:
-              (profile?.car_ids?.length ?? 0) +
-              (profile?.commercial_evs?.length ?? 0) +
-              (profile?.rental_company?.fleet.length ?? 0),
-            caption: profile
-              ? [
-                  `${profile.car_ids?.length ?? 0} cars`,
-                  `${profile.commercial_evs?.length ?? 0} commercial EVs`,
-                  ...(profile.rental_company
-                    ? [`${profile.rental_company.fleet.length} rentals`]
-                    : []),
-                ].join(" · ")
-              : undefined,
-            icon: Car,
-            color: "text-blue-600",
-            bg: "bg-blue-50",
-          },
-          {
-            label: "Leads this month",
-            value: leadsThisMonth ?? "—",
-            icon: Users,
-            color: "text-violet-600",
-            bg: "bg-violet-50",
-          },
-          {
-            label: "Profile views",
-            value: analytics?.dealer_view ?? "—",
-            icon: FileText,
-            color: "text-amber-600",
-            bg: "bg-amber-50",
-          },
-          {
-            label: "Car listing views",
-            value: analytics?.car_view ?? "—",
-            icon: Car,
-            color: "text-cyan-600",
-            bg: "bg-cyan-50",
-          },
-          {
-            label: "WhatsApp clicks",
-            value: analytics?.whatsapp_click ?? "—",
-            icon: MessageCircle,
-            color: "text-emerald-600",
-            bg: "bg-emerald-50",
-          },
-          {
-            label: "Favorited",
-            value: analytics?.car_favorited ?? "—",
-            icon: Users,
-            color: "text-rose-600",
-            bg: "bg-rose-50",
-          },
-          ...(dealer.services?.includes("rentals")
-            ? [
-                {
-                  label: "Rental profile views",
-                  value: analytics?.rental_profile_view ?? "—",
-                  icon: Building2,
-                  color: "text-violet-600",
-                  bg: "bg-violet-50",
-                },
-                {
-                  label: "Rental listing views",
-                  value: analytics?.rental_view ?? "—",
-                  icon: Car,
-                  color: "text-indigo-600",
-                  bg: "bg-indigo-50",
-                },
-                {
-                  label: "Rental enquiries",
-                  value: analytics?.rental_enquiry_open ?? "—",
-                  icon: Users,
-                  color: "text-amber-600",
-                  bg: "bg-amber-50",
-                },
-                {
-                  label: "Rental WhatsApp clicks",
-                  value: analytics?.rental_whatsapp_click ?? "—",
-                  icon: MessageCircle,
-                  color: "text-teal-600",
-                  bg: "bg-teal-50",
-                },
-              ]
-            : []),
-        ].map(({ label, value, caption, icon: Icon, color, bg }) => (
+        {(() => {
+          const services = profile?.services ?? [];
+          const hasCarSales = services.includes("car_sales");
+          const hasRentals = services.includes("rentals");
+
+          const cards = [
+            {
+              label: "Active Listings",
+              value:
+                (profile?.car_ids?.length ?? 0) +
+                (profile?.commercial_evs?.length ?? 0),
+              caption: profile
+                ? `${profile.car_ids?.length ?? 0} cars · ${profile.commercial_evs?.length ?? 0} commercial EVs`
+                : undefined,
+              icon: Car,
+              color: "text-blue-600",
+              bg: "bg-blue-50",
+            },
+            {
+              label: "Leads this month",
+              value: leadsThisMonth ?? "—",
+              icon: Users,
+              color: "text-violet-600",
+              bg: "bg-violet-50",
+            },
+          ];
+
+          if (hasCarSales) {
+            cards.push(
+              {
+                label: "Profile views",
+                value: analytics?.dealer_view ?? "—",
+                icon: FileText,
+                color: "text-amber-600",
+                bg: "bg-amber-50",
+              },
+              {
+                label: "Car listing views",
+                value: analytics?.car_view ?? "—",
+                icon: Car,
+                color: "text-cyan-600",
+                bg: "bg-cyan-50",
+              },
+              {
+                label: "WhatsApp clicks",
+                value: analytics?.whatsapp_click ?? "—",
+                icon: MessageCircle,
+                color: "text-emerald-600",
+                bg: "bg-emerald-50",
+              },
+              {
+                label: "Favorited",
+                value: analytics?.car_favorited ?? "—",
+                icon: Users,
+                color: "text-rose-600",
+                bg: "bg-rose-50",
+              },
+            );
+          }
+
+          if (hasRentals) {
+            cards.push(
+              {
+                label: "Rental profile views",
+                value: analytics?.rental_view ?? "—",
+                icon: Building2,
+                color: "text-amber-600",
+                bg: "bg-amber-50",
+              },
+              {
+                label: "Rental listing views",
+                value: analytics?.rental_car_view ?? "—",
+                icon: Truck,
+                color: "text-cyan-600",
+                bg: "bg-cyan-50",
+              },
+              {
+                label: "Rental enquiries",
+                value: analytics?.rental_enquiry ?? "—",
+                icon: Users,
+                color: "text-violet-600",
+                bg: "bg-violet-50",
+              },
+              {
+                label: "Rental WhatsApp clicks",
+                value: analytics?.rental_whatsapp_click ?? "—",
+                icon: MessageCircle,
+                color: "text-emerald-600",
+                bg: "bg-emerald-50",
+              },
+            );
+          }
+
+          return cards;
+        })().map(({ label, value, caption, icon: Icon, color, bg }) => (
           <Card key={label} className="border-0 shadow-sm">
             <CardContent className="p-5">
               <div className="flex items-center justify-between mb-3">
@@ -317,9 +338,9 @@ export default function DealerDashboard() {
               <p className="text-slate-400 text-sm py-4 text-center">
                 Loading...
               </p>
-            ) : (profile?.car_ids?.length ||
-                profile?.commercial_evs?.length ||
-                profile?.rental_company?.fleet.length) ? (
+            ) : profile?.car_ids?.length ||
+              profile?.commercial_evs?.length ||
+              profile?.rental_company?.fleet.length ? (
               <div className="space-y-2 mb-4">
                 {(profile.car_ids ?? []).map((id) => {
                   const car = profile.cars?.find((c) => c.id === id);
@@ -346,7 +367,9 @@ export default function DealerDashboard() {
                           View
                         </Link>
                       ) : (
-                        <span className="text-xs text-slate-300">Unavailable</span>
+                        <span className="text-xs text-slate-300">
+                          Unavailable
+                        </span>
                       )}
                     </div>
                   );
@@ -414,7 +437,10 @@ export default function DealerDashboard() {
             <CardTitle className="text-base font-semibold">
               Recent Leads
             </CardTitle>
-            <Link href="/dealer/leads" className="text-xs text-emerald-600 hover:underline">
+            <Link
+              href="/dealer/leads"
+              className="text-xs text-emerald-600 hover:underline"
+            >
               View all
             </Link>
           </CardHeader>
@@ -484,14 +510,25 @@ export default function DealerDashboard() {
                 </thead>
                 <tbody>
                   {analytics.perCar.map((c) => (
-                    <tr key={c.carId} className="border-b border-slate-50 last:border-0">
+                    <tr
+                      key={c.carId}
+                      className="border-b border-slate-50 last:border-0"
+                    >
                       <td className="py-2 font-medium text-slate-700">
                         {c.carName}
                       </td>
-                      <td className="py-2 text-right text-slate-600">{c.car_view}</td>
-                      <td className="py-2 text-right text-slate-600">{c.car_favorited}</td>
-                      <td className="py-2 text-right text-slate-600">{c.whatsapp_click}</td>
-                      <td className="py-2 text-right text-slate-600">{c.get_deal_click}</td>
+                      <td className="py-2 text-right text-slate-600">
+                        {c.car_view}
+                      </td>
+                      <td className="py-2 text-right text-slate-600">
+                        {c.car_favorited}
+                      </td>
+                      <td className="py-2 text-right text-slate-600">
+                        {c.whatsapp_click}
+                      </td>
+                      <td className="py-2 text-right text-slate-600">
+                        {c.get_deal_click}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
