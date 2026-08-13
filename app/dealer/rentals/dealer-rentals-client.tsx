@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Car, Settings } from "lucide-react";
-import { FleetSection } from "@/app/(common)/FleetSection";
+import FleetListClient from "./FleetListClient";
 import type { FleetCar } from "@/app/(common)/FleetCarCard";
 import { FaqSection } from "@/app/(common)/FaqSection";
 import type { Faq } from "@/app/(common)/FaqCard";
@@ -44,7 +44,7 @@ export default function DealerRentalsClient({
       </div>
 
       <div className="space-y-6">
-        <FleetSection
+        <FleetListClient
           rentalCompanyId={rentalCompanyId}
           initialFleet={initialFleet}
         />
