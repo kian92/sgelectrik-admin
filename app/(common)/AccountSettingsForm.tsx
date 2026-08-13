@@ -15,9 +15,28 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useDealerAuth } from "@/app/contexts/dealer-auth";
-import { UserCircle, KeyRound, Building2 } from "lucide-react";
+import { UserCircle, KeyRound, Building2, Car } from "lucide-react";
 
 const AREA_OPTIONS = ["Central", "North", "South", "East", "West"];
+
+const RENTAL_TYPE_OPTIONS = [
+  "Car Sharing",
+  "Subscription",
+  "Long-term Lease",
+  "Short-term Rental",
+];
+
+interface RentalCompanyRow {
+  id: number;
+  types: string[] | null;
+  price_from: string | null;
+  price_period: string | null;
+  min_term: string | null;
+  deposit_required: string | null;
+  requires_license_years: number | null;
+  includes_insurance: boolean | null;
+  includes_maintenance: boolean | null;
+}
 
 interface Account {
   id: number;
@@ -41,9 +60,15 @@ interface Account {
 
 interface Props {
   showDealerFields?: boolean;
+  dealerId?: number;
+  initialRentalCompany?: RentalCompanyRow | null;
 }
 
-export default function AccountSettingsForm({ showDealerFields }: Props) {
+export default function AccountSettingsForm({
+  showDealerFields,
+  dealerId,
+  initialRentalCompany,
+}: Props) {
   const { refresh } = useDealerAuth();
 
   const [account, setAccount] = useState<Account | null>(null);
@@ -72,6 +97,43 @@ export default function AccountSettingsForm({ showDealerFields }: Props) {
   const [highlights, setHighlights] = useState("");
   const [certifications, setCertifications] = useState("");
   const [isSavingBusiness, setIsSavingBusiness] = useState(false);
+
+  // Rental profile (dealer only)
+  const [rentalCompanyId, setRentalCompanyId] = useState<number | null>(
+    initialRentalCompany?.id ?? null,
+  );
+  const [rentalTypes, setRentalTypes] = useState<string[]>(
+    initialRentalCompany?.types ?? [],
+  );
+  const [rentalPriceFrom, setRentalPriceFrom] = useState(
+    initialRentalCompany?.price_from ?? "",
+  );
+  const [rentalPricePeriod, setRentalPricePeriod] = useState(
+    initialRentalCompany?.price_period ?? "/day",
+  );
+  const [rentalMinTerm, setRentalMinTerm] = useState(
+    initialRentalCompany?.min_term ?? "",
+  );
+  const [rentalDeposit, setRentalDeposit] = useState(
+    initialRentalCompany?.deposit_required ?? "",
+  );
+  const [rentalLicenseYears, setRentalLicenseYears] = useState(
+    String(initialRentalCompany?.requires_license_years ?? 2),
+  );
+  const [rentalIncludesInsurance, setRentalIncludesInsurance] = useState(
+    !!initialRentalCompany?.includes_insurance,
+  );
+  const [rentalIncludesMaintenance, setRentalIncludesMaintenance] = useState(
+    !!initialRentalCompany?.includes_maintenance,
+  );
+  const [isSavingRental, setIsSavingRental] = useState(false);
+  const [isDeletingRental, setIsDeletingRental] = useState(false);
+
+  function toggleRentalType(v: string) {
+    setRentalTypes((prev) =>
+      prev.includes(v) ? prev.filter((t) => t !== v) : [...prev, v],
+    );
+  }
 
   useEffect(() => {
     async function load() {
@@ -167,6 +229,76 @@ export default function AccountSettingsForm({ showDealerFields }: Props) {
       toast({ title: "Error", description: message, variant: "destructive" });
     } finally {
       setIsSavingBusiness(false);
+    }
+  }
+
+  async function handleSaveRentalProfile() {
+    if (rentalTypes.length === 0) return;
+    setIsSavingRental(true);
+    try {
+      const payload = {
+        dealer_id: dealerId,
+        types: rentalTypes,
+        price_from: rentalPriceFrom,
+        price_period: rentalPricePeriod,
+        min_term: rentalMinTerm,
+        deposit_required: rentalDeposit,
+        includes_insurance: rentalIncludesInsurance,
+        includes_maintenance: rentalIncludesMaintenance,
+        requires_license_years: parseInt(rentalLicenseYears) || 2,
+      };
+
+      const url = rentalCompanyId
+        ? `/api/rental-companies/${rentalCompanyId}`
+        : "/api/rental-companies";
+      const method = rentalCompanyId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+
+      if (!res.ok) throw new Error(json.error ?? "Failed to save");
+
+      if (!rentalCompanyId) setRentalCompanyId(json.id);
+      toast({
+        title: rentalCompanyId
+          ? "Rental profile updated"
+          : "Rental listings enabled",
+      });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Something went wrong";
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setIsSavingRental(false);
+    }
+  }
+
+  async function handleDeleteRentalListing() {
+    if (!rentalCompanyId) return;
+    if (
+      !confirm(
+        "Remove your rental listing? This will also delete your fleet cars and cannot be undone.",
+      )
+    )
+      return;
+
+    setIsDeletingRental(true);
+    try {
+      const res = await fetch(`/api/rental-companies/${rentalCompanyId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to remove listing");
+      setRentalCompanyId(null);
+      setRentalTypes([]);
+      toast({ title: "Rental listing removed" });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Something went wrong";
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } finally {
+      setIsDeletingRental(false);
     }
   }
 
@@ -430,6 +562,157 @@ export default function AccountSettingsForm({ showDealerFields }: Props) {
             <div className="flex justify-end">
               <Button onClick={handleSaveBusinessProfile} disabled={isSavingBusiness}>
                 {isSavingBusiness ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Rental Profile */}
+      {showDealerFields && (
+        <Card id="rental-profile" className="border-0 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-emerald-100 flex items-center justify-center">
+                <Car className="h-5 w-5 text-emerald-600" />
+              </div>
+              <CardTitle className="text-base font-semibold">
+                Rental Profile
+              </CardTitle>
+            </div>
+            <p className="text-xs text-slate-400 pl-12">
+              Set your EV rental pricing and terms. Manage your fleet cars
+              and FAQs from the My Rentals page.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {!rentalCompanyId && (
+              <div className="rounded-lg bg-emerald-50 border border-emerald-100 px-4 py-3 text-sm text-emerald-800">
+                You haven&apos;t enabled EV rental listings yet. Pick at
+                least one rental type below and save to get started.
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label>Rental type *</Label>
+              <div className="flex flex-wrap gap-2">
+                {RENTAL_TYPE_OPTIONS.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => toggleRentalType(t)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      rentalTypes.includes(t)
+                        ? "bg-emerald-600 text-white border-emerald-600"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="rentalPriceFrom">Price from</Label>
+                <Input
+                  id="rentalPriceFrom"
+                  value={rentalPriceFrom}
+                  onChange={(e) => setRentalPriceFrom(e.target.value)}
+                  placeholder="S$80"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rentalPricePeriod">Period</Label>
+                <Input
+                  id="rentalPricePeriod"
+                  value={rentalPricePeriod}
+                  onChange={(e) => setRentalPricePeriod(e.target.value)}
+                  placeholder="/day"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="rentalMinTerm">Min term</Label>
+                <Input
+                  id="rentalMinTerm"
+                  value={rentalMinTerm}
+                  onChange={(e) => setRentalMinTerm(e.target.value)}
+                  placeholder="1 day"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rentalDeposit">Deposit required</Label>
+                <Input
+                  id="rentalDeposit"
+                  value={rentalDeposit}
+                  onChange={(e) => setRentalDeposit(e.target.value)}
+                  placeholder="S$500"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rentalLicenseYears">
+                  License years required
+                </Label>
+                <Input
+                  id="rentalLicenseYears"
+                  type="number"
+                  value={rentalLicenseYears}
+                  onChange={(e) => setRentalLicenseYears(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-6">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rentalIncludesInsurance}
+                  onChange={(e) =>
+                    setRentalIncludesInsurance(e.target.checked)
+                  }
+                  className="h-4 w-4 rounded border-slate-300 accent-emerald-500"
+                />
+                Includes insurance
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rentalIncludesMaintenance}
+                  onChange={(e) =>
+                    setRentalIncludesMaintenance(e.target.checked)
+                  }
+                  className="h-4 w-4 rounded border-slate-300 accent-emerald-500"
+                />
+                Includes maintenance
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              {rentalCompanyId ? (
+                <Button
+                  variant="ghost"
+                  onClick={handleDeleteRentalListing}
+                  disabled={isDeletingRental}
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                >
+                  {isDeletingRental ? "Removing…" : "Remove rental listing"}
+                </Button>
+              ) : (
+                <div />
+              )}
+              <Button
+                onClick={handleSaveRentalProfile}
+                disabled={isSavingRental || rentalTypes.length === 0}
+              >
+                {isSavingRental
+                  ? "Saving…"
+                  : rentalCompanyId
+                    ? "Save changes"
+                    : "Enable rental listings"}
               </Button>
             </div>
           </CardContent>

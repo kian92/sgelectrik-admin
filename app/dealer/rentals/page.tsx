@@ -1,9 +1,12 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getServerSession } from "next-auth";
+import { Car } from "lucide-react";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { supabaseServer } from "@/app/lib/supabase-server";
-import { RentalFormClient } from "@/app/(common)/rental-form-client";
+import { Button } from "@/components/ui/button";
+import DealerRentalsClient from "./dealer-rentals-client";
 
 export const metadata: Metadata = {
   title: "My EV Rentals | SGElectrik Backoffice",
@@ -47,20 +50,39 @@ export default async function DealerRentalsPage() {
 
   const company = await getRentalCompanyByDealerId(dealer.id);
 
+  if (!company) {
+    return (
+      <div className="max-w-xl mx-auto py-16 text-center">
+        <div className="h-12 w-12 rounded-xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+          <Car className="h-6 w-6 text-emerald-600" />
+        </div>
+        <h1 className="text-xl font-bold text-slate-900 mb-2">
+          Set up your rental profile first
+        </h1>
+        <p className="text-slate-500 text-sm mb-6">
+          Before you can list EV rental cars, set up your rental profile —
+          pick at least one rental type to get started.
+        </p>
+        <Link href="/dealer/settings#rental-profile">
+          <Button className="gap-2">Go to Settings</Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
-    <RentalFormClient
-      editingId={company?.id ?? null}
-      initialData={company}
-      dealers={[]}
-      isAdmin={false}
-      backHref="/dealer/rentals"
-      fixedDealerId={dealer.id}
-      dealerInfo={{
-        name: dealer.name ?? "",
-        website: dealer.website ?? "",
-        phone: dealer.phone ?? "",
-        area: dealer.area ?? "",
-      }}
+    <DealerRentalsClient
+      rentalCompanyId={company.id}
+      initialFleet={
+        Array.isArray(company.rental_company_fleet)
+          ? company.rental_company_fleet
+          : []
+      }
+      initialFaqs={
+        Array.isArray(company.rental_company_faqs)
+          ? company.rental_company_faqs
+          : []
+      }
     />
   );
 }
