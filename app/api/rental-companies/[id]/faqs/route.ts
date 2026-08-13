@@ -4,25 +4,9 @@ import { NextResponse } from "next/server";
 function toRow(b: Record<string, unknown>, rentalCompanyId: number) {
   return {
     rental_company_id: rentalCompanyId,
-    model: b.model,
-    image_id: (b.imageId as string | null) ?? null,
-    gallery_images: Array.isArray(b.galleryImages) ? b.galleryImages : [],
-    price_from: b.priceFrom ?? "",
-    price_period: b.pricePeriod ?? "",
-    range_km: b.rangeKm ?? 0,
-    seats: b.seats ?? 5,
-    accel: b.accel ?? "",
-    charge_time: b.chargeTime ?? "",
-    body_type: b.bodyType ?? "",
-    description: b.description ?? "",
-    promo_text: b.promoText ?? "",
-    phv_requirements: Array.isArray(b.phvRequirements) ? b.phvRequirements : [],
-    corporate_requirements: Array.isArray(b.corporateRequirements)
-      ? b.corporateRequirements
-      : [],
-    types: Array.isArray(b.types) ? b.types : [],
-    deposit_required: b.depositRequired ?? "",
-    available: b.available === undefined ? true : !!b.available,
+    question: b.question,
+    answer: b.answer,
+    sort_order: b.sortOrder ?? 0,
   };
 }
 
@@ -33,9 +17,10 @@ export async function GET(
   const { id } = await params;
 
   const { data, error } = await supabaseServer
-    .from("rental_company_fleet")
+    .from("rental_company_faqs")
     .select("*")
     .eq("rental_company_id", id)
+    .order("sort_order", { ascending: true })
     .order("id", { ascending: true });
 
   if (error)
@@ -51,18 +36,24 @@ export async function POST(
   const { id } = await params;
   const body = await req.json();
 
-  if (!body.model || !String(body.model).trim()) {
-    return NextResponse.json({ error: "Model is required" }, { status: 400 });
+  if (!body.question || !String(body.question).trim()) {
+    return NextResponse.json(
+      { error: "Question is required" },
+      { status: 400 },
+    );
+  }
+  if (!body.answer || !String(body.answer).trim()) {
+    return NextResponse.json({ error: "Answer is required" }, { status: 400 });
   }
 
   const { data, error } = await supabaseServer
-    .from("rental_company_fleet")
+    .from("rental_company_faqs")
     .insert(toRow(body, Number(id)))
     .select()
     .single();
 
   if (error) {
-    console.error("POST rental-company fleet:", error.message);
+    console.error("POST rental-company faqs:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

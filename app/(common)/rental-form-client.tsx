@@ -18,6 +18,8 @@ import {
 import { ArrowLeft, Car, CheckCircle2 } from "lucide-react";
 import { FleetSection } from "./FleetSection";
 import type { FleetCar } from "./FleetCarCard";
+import { FaqSection } from "./FaqSection";
+import type { Faq } from "./FaqCard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,7 +41,6 @@ interface FormState {
   name: string;
   slug: string;
   types: string[];
-  tagline: string;
   description: string;
   area: string;
   priceFrom: string;
@@ -78,7 +79,6 @@ const EMPTY: FormState = {
   name: "",
   slug: "",
   types: ["Short-term Rental"],
-  tagline: "",
   description: "",
   area: "",
   priceFrom: "",
@@ -163,7 +163,6 @@ export function RentalFormClient({
         : initialData.type
           ? [initialData.type]
           : ["Short-term Rental"],
-      tagline: initialData.tagline ?? "",
       description: initialData.description ?? "",
       area: initialData.area ?? dealerInfo?.area ?? "",
       priceFrom: initialData.price_from ?? "",
@@ -212,7 +211,6 @@ export function RentalFormClient({
           }
         : {}),
       types: form.types,
-      tagline: form.tagline,
       description: form.description,
       price_from: form.priceFrom,
       price_period: form.pricePeriod,
@@ -393,26 +391,20 @@ export function RentalFormClient({
                 ))}
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Tagline</Label>
-              <Input
-                value={form.tagline}
-                onChange={(e) => set("tagline", e.target.value)}
-                placeholder="Drive an EV without owning one"
-              />
-              <p className="text-xs text-slate-400">
-                A short one-line hook shown on your public listing card,
-                separate from the longer description below.
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Description</Label>
-              <Textarea
-                rows={4}
-                value={form.description}
-                onChange={(e) => set("description", e.target.value)}
-              />
-            </div>
+            {isAdmin && (
+              <div className="space-y-1.5">
+                <Label>Description</Label>
+                <Textarea
+                  rows={4}
+                  value={form.description}
+                  onChange={(e) => set("description", e.target.value)}
+                />
+                <p className="text-xs text-slate-400">
+                  Shown in the &quot;About&quot; section of your public
+                  company page.
+                </p>
+              </div>
+            )}
 
             {/* Admin: assign dealer */}
             {isAdmin && (
@@ -519,15 +511,15 @@ export function RentalFormClient({
           </CardContent>
         </Card>
 
-        {/* Contact & ratings */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">
-              Contact & ratings
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {isAdmin && (
+        {/* Contact & ratings — admin only */}
+        {isAdmin && (
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">
+                Contact & ratings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
               <div className="grid grid-cols-2 gap-5">
                 <div className="space-y-1.5">
                   <Label>Website</Label>
@@ -546,41 +538,41 @@ export function RentalFormClient({
                   />
                 </div>
               </div>
-            )}
-            <div className="grid grid-cols-2 gap-5">
-              <div className="space-y-1.5">
-                <Label>Rating (0–5)</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="5"
-                  value={form.rating}
-                  onChange={(e) => set("rating", e.target.value)}
-                />
+              <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <Label>Rating (0–5)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    value={form.rating}
+                    onChange={(e) => set("rating", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Review count</Label>
+                  <Input
+                    type="number"
+                    value={form.reviewCount}
+                    onChange={(e) => set("reviewCount", e.target.value)}
+                  />
+                </div>
               </div>
               <div className="space-y-1.5">
-                <Label>Review count</Label>
-                <Input
-                  type="number"
-                  value={form.reviewCount}
-                  onChange={(e) => set("reviewCount", e.target.value)}
+                <Label>Features (one per line)</Label>
+                <Textarea
+                  rows={4}
+                  value={form.featuresText}
+                  onChange={(e) => set("featuresText", e.target.value)}
+                  placeholder={
+                    "Free charging\n24/7 roadside assistance\nNo cancellation fees"
+                  }
                 />
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Features (one per line)</Label>
-              <Textarea
-                rows={4}
-                value={form.featuresText}
-                onChange={(e) => set("featuresText", e.target.value)}
-                placeholder={
-                  "Free charging\n24/7 roadside assistance\nNo cancellation fees"
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Fleet */}
         <FleetSection
@@ -588,6 +580,16 @@ export function RentalFormClient({
           initialFleet={
             Array.isArray(initialData?.rental_company_fleet)
               ? (initialData.rental_company_fleet as FleetCar[])
+              : []
+          }
+        />
+
+        {/* FAQs */}
+        <FaqSection
+          rentalCompanyId={editingId}
+          initialFaqs={
+            Array.isArray(initialData?.rental_company_faqs)
+              ? (initialData.rental_company_faqs as Faq[])
               : []
           }
         />

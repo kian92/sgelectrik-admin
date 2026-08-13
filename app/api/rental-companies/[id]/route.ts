@@ -10,7 +10,7 @@ export async function GET(
 
   const { data, error } = await supabaseServer
     .from("rental_companies")
-    .select("*, rental_company_fleet(*)")
+    .select("*, rental_company_fleet(*), rental_company_faqs(*)")
     .eq("id", id)
     .maybeSingle();
 
@@ -54,7 +54,6 @@ export async function PUT(
       dealer_id: companyFields.dealer_id,
       name,
       types: companyFields.types ?? [],
-      tagline: companyFields.tagline ?? "",
       description: companyFields.description ?? "",
       area: area ?? "",
       price_from: companyFields.price_from ?? "",

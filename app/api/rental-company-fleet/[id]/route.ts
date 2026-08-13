@@ -16,6 +16,25 @@ function toRow(b: Record<string, unknown>) {
     ...(b.accel !== undefined && { accel: b.accel }),
     ...(b.chargeTime !== undefined && { charge_time: b.chargeTime }),
     ...(b.bodyType !== undefined && { body_type: b.bodyType }),
+    ...(b.description !== undefined && { description: b.description }),
+    ...(b.promoText !== undefined && { promo_text: b.promoText }),
+    ...(b.phvRequirements !== undefined && {
+      phv_requirements: Array.isArray(b.phvRequirements)
+        ? b.phvRequirements
+        : [],
+    }),
+    ...(b.corporateRequirements !== undefined && {
+      corporate_requirements: Array.isArray(b.corporateRequirements)
+        ? b.corporateRequirements
+        : [],
+    }),
+    ...(b.types !== undefined && {
+      types: Array.isArray(b.types) ? b.types : [],
+    }),
+    ...(b.depositRequired !== undefined && {
+      deposit_required: b.depositRequired,
+    }),
+    ...(b.available !== undefined && { available: !!b.available }),
   };
 }
 

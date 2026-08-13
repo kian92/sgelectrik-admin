@@ -18,6 +18,13 @@ export interface FleetCar {
   accel: string;
   charge_time: string;
   body_type: string;
+  description?: string | null;
+  promo_text?: string | null;
+  phv_requirements?: string[] | null;
+  corporate_requirements?: string[] | null;
+  types?: string[] | null;
+  deposit_required?: string | null;
+  available?: boolean;
 }
 
 interface Props {
@@ -61,11 +68,32 @@ export function FleetCarCard({ car, onEdit, onDeleted }: Props) {
       </div>
       <CardContent className="p-4 space-y-3">
         <div className="min-w-0">
-          <p className="font-semibold text-slate-900 truncate">{car.model}</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="font-semibold text-slate-900 truncate">
+              {car.model}
+            </p>
+            {car.available === false && (
+              <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
+                Unavailable
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 mt-0.5">
             {car.body_type || "—"}
           </p>
         </div>
+
+        {car.promo_text && (
+          <span className="inline-block text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+            {car.promo_text}
+          </span>
+        )}
+
+        {car.description && (
+          <p className="text-xs text-slate-500 line-clamp-2">
+            {car.description}
+          </p>
+        )}
 
         <div className="text-sm text-slate-600 space-y-1.5">
           {car.price_from && (

@@ -27,7 +27,7 @@ async function getDealerByEmail(email: string) {
 async function getRentalCompanyByDealerId(dealerId: number) {
   const { data, error } = await supabaseServer
     .from("rental_companies")
-    .select("*, rental_company_fleet(*)")
+    .select("*, rental_company_fleet(*), rental_company_faqs(*)")
     .eq("dealer_id", dealerId)
     .maybeSingle();
 

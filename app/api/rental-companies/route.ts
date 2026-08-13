@@ -75,7 +75,6 @@ export async function POST(req: Request) {
       dealer_id: companyFields.dealer_id,
       name,
       types: companyFields.types ?? [],
-      tagline: companyFields.tagline ?? "",
       description: companyFields.description ?? "",
       area: area ?? "",
       price_from: companyFields.price_from ?? "",
