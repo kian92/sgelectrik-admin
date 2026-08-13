@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Car as CarIcon, Gauge, Users, Zap, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import type { Faq } from "./FaqCard";
 
 export interface FleetCar {
   id: number;
@@ -25,6 +26,7 @@ export interface FleetCar {
   types?: string[] | null;
   deposit_required?: string | null;
   available?: boolean;
+  rental_company_faqs?: Faq[] | null;
 }
 
 interface Props {
@@ -92,6 +94,13 @@ export function FleetCarCard({ car, onEdit, onDeleted }: Props) {
         {car.description && (
           <p className="text-xs text-slate-500 line-clamp-2">
             {car.description}
+          </p>
+        )}
+
+        {!!car.rental_company_faqs?.length && (
+          <p className="text-xs text-slate-400">
+            {car.rental_company_faqs.length} FAQ
+            {car.rental_company_faqs.length === 1 ? "" : "s"}
           </p>
         )}
 

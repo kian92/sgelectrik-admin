@@ -8,13 +8,13 @@ import { FaqCard, type Faq } from "./FaqCard";
 import { FaqForm } from "./FaqForm";
 
 interface Props {
-  rentalCompanyId: number | null;
+  fleetCarId: number | null;
   initialFaqs: Faq[];
 }
 
 type Mode = { type: "add" } | { type: "edit"; faq: Faq } | null;
 
-export function FaqSection({ rentalCompanyId, initialFaqs }: Props) {
+export function FaqSection({ fleetCarId, initialFaqs }: Props) {
   const [faqs, setFaqs] = useState<Faq[]>(initialFaqs);
   const [mode, setMode] = useState<Mode>(null);
 
@@ -39,7 +39,7 @@ export function FaqSection({ rentalCompanyId, initialFaqs }: Props) {
         <CardTitle className="text-base font-semibold">
           FAQs ({faqs.length})
         </CardTitle>
-        {rentalCompanyId && mode === null && (
+        {fleetCarId && mode === null && (
           <Button
             size="sm"
             variant="outline"
@@ -51,15 +51,15 @@ export function FaqSection({ rentalCompanyId, initialFaqs }: Props) {
         )}
       </CardHeader>
       <CardContent className="space-y-3">
-        {!rentalCompanyId ? (
+        {!fleetCarId ? (
           <p className="text-sm text-slate-400">
-            Save your rental profile first, then add FAQs.
+            Save this fleet car first, then add FAQs.
           </p>
         ) : (
           <>
             {mode?.type === "add" && (
               <FaqForm
-                rentalCompanyId={rentalCompanyId}
+                fleetCarId={fleetCarId}
                 onSaved={handleSaved}
                 onCancel={() => setMode(null)}
               />
@@ -75,7 +75,7 @@ export function FaqSection({ rentalCompanyId, initialFaqs }: Props) {
               mode?.type === "edit" && mode.faq.id === faq.id ? (
                 <FaqForm
                   key={faq.id}
-                  rentalCompanyId={rentalCompanyId}
+                  fleetCarId={fleetCarId}
                   existing={faq}
                   onSaved={handleSaved}
                   onCancel={() => setMode(null)}

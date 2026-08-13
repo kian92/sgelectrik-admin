@@ -10,7 +10,7 @@ export async function GET(
 
   const { data, error } = await supabaseServer
     .from("rental_companies")
-    .select("*, rental_company_fleet(*), rental_company_faqs(*)")
+    .select("*, rental_company_fleet(*, rental_company_faqs(*))")
     .eq("id", id)
     .maybeSingle();
 

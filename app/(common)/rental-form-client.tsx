@@ -18,8 +18,6 @@ import {
 import { ArrowLeft, Car, CheckCircle2 } from "lucide-react";
 import { FleetSection } from "./FleetSection";
 import type { FleetCar } from "./FleetCarCard";
-import { FaqSection } from "./FaqSection";
-import type { Faq } from "./FaqCard";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -580,16 +578,6 @@ export function RentalFormClient({
           initialFleet={
             Array.isArray(initialData?.rental_company_fleet)
               ? (initialData.rental_company_fleet as FleetCar[])
-              : []
-          }
-        />
-
-        {/* FAQs */}
-        <FaqSection
-          rentalCompanyId={editingId}
-          initialFaqs={
-            Array.isArray(initialData?.rental_company_faqs)
-              ? (initialData.rental_company_faqs as Faq[])
               : []
           }
         />

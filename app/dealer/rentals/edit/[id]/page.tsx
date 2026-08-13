@@ -48,7 +48,7 @@ async function getFleetCar(
 ): Promise<FleetCar | null> {
   const { data, error } = await supabaseServer
     .from("rental_company_fleet")
-    .select("*")
+    .select("*, rental_company_faqs(*)")
     .eq("id", id)
     .eq("rental_company_id", rentalCompanyId)
     .maybeSingle();

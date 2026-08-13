@@ -4,19 +4,15 @@ import Link from "next/link";
 import { Car, Settings } from "lucide-react";
 import FleetListClient from "./FleetListClient";
 import type { FleetCar } from "@/app/(common)/FleetCarCard";
-import { FaqSection } from "@/app/(common)/FaqSection";
-import type { Faq } from "@/app/(common)/FaqCard";
 
 interface Props {
   rentalCompanyId: number;
   initialFleet: FleetCar[];
-  initialFaqs: Faq[];
 }
 
 export default function DealerRentalsClient({
   rentalCompanyId,
   initialFleet,
-  initialFaqs,
 }: Props) {
   return (
     <div className="max-w-screen-xl mx-auto">
@@ -30,7 +26,7 @@ export default function DealerRentalsClient({
               My EV Rentals
             </h1>
             <p className="text-slate-500 text-sm mt-0.5">
-              Manage your fleet and FAQs
+              Manage your fleet
             </p>
           </div>
         </div>
@@ -47,10 +43,6 @@ export default function DealerRentalsClient({
         <FleetListClient
           rentalCompanyId={rentalCompanyId}
           initialFleet={initialFleet}
-        />
-        <FaqSection
-          rentalCompanyId={rentalCompanyId}
-          initialFaqs={initialFaqs}
         />
       </div>
     </div>

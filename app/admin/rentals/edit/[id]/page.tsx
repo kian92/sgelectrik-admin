@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 async function getRentalCompany(id: string) {
   const { data, error } = await supabaseServer
     .from("rental_companies")
-    .select("*, rental_company_fleet(*), rental_company_faqs(*)")
+    .select("*, rental_company_fleet(*, rental_company_faqs(*))")
     .eq("id", id)
     .maybeSingle();
 

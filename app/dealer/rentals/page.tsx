@@ -30,7 +30,7 @@ async function getDealerByEmail(email: string) {
 async function getRentalCompanyByDealerId(dealerId: number) {
   const { data, error } = await supabaseServer
     .from("rental_companies")
-    .select("*, rental_company_fleet(*), rental_company_faqs(*)")
+    .select("*, rental_company_fleet(*, rental_company_faqs(*))")
     .eq("dealer_id", dealerId)
     .maybeSingle();
 
@@ -76,11 +76,6 @@ export default async function DealerRentalsPage() {
       initialFleet={
         Array.isArray(company.rental_company_fleet)
           ? company.rental_company_fleet
-          : []
-      }
-      initialFaqs={
-        Array.isArray(company.rental_company_faqs)
-          ? company.rental_company_faqs
           : []
       }
     />

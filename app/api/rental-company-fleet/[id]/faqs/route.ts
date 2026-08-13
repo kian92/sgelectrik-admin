@@ -1,9 +1,9 @@
 import { supabaseServer } from "@/app/lib/supabase-server";
 import { NextResponse } from "next/server";
 
-function toRow(b: Record<string, unknown>, rentalCompanyId: number) {
+function toRow(b: Record<string, unknown>, fleetCarId: number) {
   return {
-    rental_company_id: rentalCompanyId,
+    fleet_car_id: fleetCarId,
     question: b.question,
     answer: b.answer,
     sort_order: b.sortOrder ?? 0,
@@ -19,7 +19,7 @@ export async function GET(
   const { data, error } = await supabaseServer
     .from("rental_company_faqs")
     .select("*")
-    .eq("rental_company_id", id)
+    .eq("fleet_car_id", id)
     .order("sort_order", { ascending: true })
     .order("id", { ascending: true });
 
@@ -53,7 +53,7 @@ export async function POST(
     .single();
 
   if (error) {
-    console.error("POST rental-company faqs:", error.message);
+    console.error("POST fleet-car faqs:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

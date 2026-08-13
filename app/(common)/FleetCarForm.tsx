@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/FileUpload";
 import { GalleryGrid } from "@/components/GalleryGrid";
 import type { FleetCar } from "./FleetCarCard";
+import { FaqSection } from "./FaqSection";
 
 const RENTAL_TYPE_OPTIONS = [
   "Car Sharing",
@@ -383,6 +384,13 @@ export function FleetCarForm({
             </Button>
           </div>
         </form>
+
+        <div className="mt-6 pt-6 border-t border-slate-100">
+          <FaqSection
+            fleetCarId={existing?.id ?? null}
+            initialFaqs={existing?.rental_company_faqs ?? []}
+          />
+        </div>
       </CardContent>
     </Card>
   );

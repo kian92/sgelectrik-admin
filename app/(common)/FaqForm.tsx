@@ -11,13 +11,13 @@ import { useToast } from "@/hooks/use-toast";
 import type { Faq } from "./FaqCard";
 
 interface Props {
-  rentalCompanyId: number;
+  fleetCarId: number;
   existing?: Faq;
   onSaved: (faq: Faq) => void;
   onCancel: () => void;
 }
 
-export function FaqForm({ rentalCompanyId, existing, onSaved, onCancel }: Props) {
+export function FaqForm({ fleetCarId, existing, onSaved, onCancel }: Props) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const isEdit = !!existing;
@@ -31,7 +31,7 @@ export function FaqForm({ rentalCompanyId, existing, onSaved, onCancel }: Props)
     startTransition(async () => {
       const url = isEdit
         ? `/api/rental-company-faqs/${existing!.id}`
-        : `/api/rental-companies/${rentalCompanyId}/faqs`;
+        : `/api/rental-company-fleet/${fleetCarId}/faqs`;
       const method = isEdit ? "PATCH" : "POST";
 
       const res = await fetch(url, {
