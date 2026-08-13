@@ -48,6 +48,12 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .select("id, name, slug")
     .eq("dealer_id", id)
     .maybeSingle();
+  const { data: rentalFleetData } = rentalCompanyData
+    ? await supabaseServer
+        .from("rental_company_fleet")
+        .select("id, model")
+        .eq("rental_company_id", rentalCompanyData.id)
+    : { data: [] };
 
   return NextResponse.json({
     ...data,
@@ -55,7 +61,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
     car_ids: carIds,
     cars,
     commercial_evs: commercialEvs,
-    rental_company: rentalCompanyData ?? null,
+    rental_company: rentalCompanyData
+      ? { ...rentalCompanyData, fleet: rentalFleetData ?? [] }
+      : null,
   });
 }
 
