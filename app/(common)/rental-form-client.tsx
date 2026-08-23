@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Car, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Car, CheckCircle2, LayoutGrid } from "lucide-react";
 import { FleetSection } from "./FleetSection";
 import type { FleetCar } from "./FleetCarCard";
 
@@ -573,14 +573,50 @@ export function RentalFormClient({
         )}
 
         {/* Fleet */}
-        <FleetSection
-          rentalCompanyId={editingId}
-          initialFleet={
-            Array.isArray(initialData?.rental_company_fleet)
-              ? (initialData.rental_company_fleet as FleetCar[])
-              : []
-          }
-        />
+        {isAdmin ? (
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">
+                Fleet
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {editingId ? (
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <p className="text-sm text-slate-500">
+                    {Array.isArray(initialData?.rental_company_fleet)
+                      ? initialData.rental_company_fleet.length
+                      : 0}{" "}
+                    car
+                    {Array.isArray(initialData?.rental_company_fleet) &&
+                    initialData.rental_company_fleet.length === 1
+                      ? ""
+                      : "s"}{" "}
+                    in this company&apos;s fleet.
+                  </p>
+                  <Link href={`/admin/rentals/${editingId}/fleet`}>
+                    <Button variant="outline" size="sm" className="gap-1.5">
+                      <LayoutGrid className="h-3.5 w-3.5" /> Manage fleet
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">
+                  Save this rental company first, then manage its fleet.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <FleetSection
+            rentalCompanyId={editingId}
+            initialFleet={
+              Array.isArray(initialData?.rental_company_fleet)
+                ? (initialData.rental_company_fleet as FleetCar[])
+                : []
+            }
+          />
+        )}
 
         {/* Footer actions */}
         <div className="flex items-center justify-between gap-4 pb-8">

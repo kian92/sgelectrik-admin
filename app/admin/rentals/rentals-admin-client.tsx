@@ -6,7 +6,15 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Car, Plus, MapPin, Star, Pencil, Trash2 } from "lucide-react";
+import {
+  Car,
+  Plus,
+  MapPin,
+  Star,
+  Pencil,
+  Trash2,
+  LayoutGrid,
+} from "lucide-react";
 import { SearchBar } from "@/components/SearchBar";
 import type { RentalCompany } from "./page";
 
@@ -203,6 +211,11 @@ export default function RentalsAdminClient({
                   <Link href={`/admin/rentals/edit/${c.id}`}>
                     <Button size="sm" variant="outline" className="gap-1.5">
                       <Pencil className="h-3.5 w-3.5" /> Edit
+                    </Button>
+                  </Link>
+                  <Link href={`/admin/rentals/${c.id}/fleet`}>
+                    <Button size="sm" variant="outline" className="gap-1.5">
+                      <LayoutGrid className="h-3.5 w-3.5" /> Fleet
                     </Button>
                   </Link>
                   <Button
