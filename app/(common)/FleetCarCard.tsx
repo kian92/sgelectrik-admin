@@ -26,6 +26,7 @@ export interface FleetCar {
   types?: string[] | null;
   deposit_required?: string | null;
   available?: boolean;
+  status?: "draft" | "published";
   rental_company_faqs?: Faq[] | null;
 }
 
@@ -33,11 +34,14 @@ interface Props {
   car: FleetCar;
   onEdit: (car: FleetCar) => void;
   onDeleted: (id: number) => void;
+  onStatusChange?: (car: FleetCar) => void;
 }
 
-export function FleetCarCard({ car, onEdit, onDeleted }: Props) {
+export function FleetCarCard({ car, onEdit, onDeleted, onStatusChange }: Props) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [isToggling, startToggle] = useTransition();
+  const isDraft = car.status !== "published";
 
   function handleDelete() {
     if (!confirm(`Remove ${car.model} from your fleet?`)) return;
@@ -51,6 +55,25 @@ export function FleetCarCard({ car, onEdit, onDeleted }: Props) {
       }
       toast({ title: "Fleet car removed" });
       onDeleted(car.id);
+    });
+  }
+
+  function handleToggleStatus() {
+    const nextStatus = isDraft ? "published" : "draft";
+    startToggle(async () => {
+      const res = await fetch(`/api/rental-company-fleet/${car.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      if (!res.ok) {
+        toast({ title: "Failed to update status", variant: "destructive" });
+        return;
+      }
+      toast({
+        title: nextStatus === "published" ? "Car published" : "Moved to draft",
+      });
+      onStatusChange?.({ ...car, status: nextStatus });
     });
   }
 
@@ -74,6 +97,15 @@ export function FleetCarCard({ car, onEdit, onDeleted }: Props) {
             <p className="font-semibold text-slate-900 truncate">
               {car.model}
             </p>
+            <span
+              className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
+                isDraft
+                  ? "text-amber-700 bg-amber-50"
+                  : "text-emerald-700 bg-emerald-50"
+              }`}
+            >
+              {isDraft ? "Draft" : "Published"}
+            </span>
             {car.available === false && (
               <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">
                 Unavailable
@@ -129,7 +161,7 @@ export function FleetCarCard({ car, onEdit, onDeleted }: Props) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 flex-wrap">
           <Button
             size="sm"
             variant="outline"
@@ -137,6 +169,15 @@ export function FleetCarCard({ car, onEdit, onDeleted }: Props) {
             onClick={() => onEdit(car)}
           >
             <Pencil className="h-3.5 w-3.5" /> Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isToggling}
+            className="gap-1.5"
+            onClick={handleToggleStatus}
+          >
+            {isToggling ? "…" : isDraft ? "Publish" : "Unpublish"}
           </Button>
           <Button
             size="sm"

@@ -48,6 +48,7 @@ function buildInitialForm(existing?: FleetCar) {
     ),
     promoText: existing?.promo_text ?? "",
     available: existing?.available ?? true,
+    status: existing?.status ?? "draft",
   };
 }
 
@@ -109,6 +110,7 @@ export function FleetCarForm({
         .filter(Boolean),
       promoText: form.promoText.trim(),
       available: form.available,
+      status: form.status,
     };
 
     startTransition(async () => {
@@ -299,6 +301,31 @@ export function FleetCarForm({
               onChange={(e) => set("promoText", e.target.value)}
               placeholder="Up to 29% off EV charging"
             />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Status</Label>
+            <div className="flex flex-wrap gap-2">
+              {(["draft", "published"] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => set("status", s)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                    form.status === s
+                      ? s === "published"
+                        ? "bg-emerald-600 text-white border-emerald-600"
+                        : "bg-amber-500 text-white border-amber-500"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                  }`}
+                >
+                  {s === "draft" ? "Draft" : "Published"}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-400">
+              Draft cars are hidden from the public site until published.
+            </p>
           </div>
 
           <label className="flex items-center gap-2 text-sm cursor-pointer">

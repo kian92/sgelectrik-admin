@@ -88,6 +88,7 @@ export function FleetSection({ rentalCompanyId, initialFleet }: Props) {
                     car={car}
                     onEdit={(c) => setMode({ type: "edit", car: c })}
                     onDeleted={handleDeleted}
+                    onStatusChange={handleSaved}
                   />
                 ),
               )}

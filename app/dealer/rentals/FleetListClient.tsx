@@ -17,12 +17,24 @@ interface Props {
   initialFleet: FleetCar[];
 }
 
+type StatusFilter = "all" | "published" | "draft";
+
 export default function FleetListClient({ initialFleet }: Props) {
   const router = useRouter();
   const [fleet, setFleet] = useState<FleetCar[]>(initialFleet);
   const [currentPage, setCurrentPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
-  const totalPages = Math.max(1, Math.ceil(fleet.length / PAGE_SIZE));
+  const filteredFleet =
+    statusFilter === "all"
+      ? fleet
+      : fleet.filter((c) =>
+          statusFilter === "published"
+            ? c.status === "published"
+            : c.status !== "published",
+        );
+
+  const totalPages = Math.max(1, Math.ceil(filteredFleet.length / PAGE_SIZE));
   const groupStart =
     Math.floor((currentPage - 1) / PAGE_GROUP) * PAGE_GROUP + 1;
   const groupEnd = Math.min(groupStart + PAGE_GROUP - 1, totalPages);
@@ -30,7 +42,7 @@ export default function FleetListClient({ initialFleet }: Props) {
     { length: groupEnd - groupStart + 1 },
     (_, i) => groupStart + i,
   );
-  const paginatedFleet = fleet.slice(
+  const paginatedFleet = filteredFleet.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   );
@@ -39,11 +51,23 @@ export default function FleetListClient({ initialFleet }: Props) {
     setCurrentPage(Math.min(Math.max(1, page), totalPages));
   }
 
+  function changeFilter(f: StatusFilter) {
+    setStatusFilter(f);
+    setCurrentPage(1);
+  }
+
   function handleDeleted(id: number) {
     const updated = fleet.filter((c) => c.id !== id);
     setFleet(updated);
     const newTotal = Math.max(1, Math.ceil(updated.length / PAGE_SIZE));
     if (currentPage > newTotal) setCurrentPage(newTotal);
+    router.refresh();
+  }
+
+  function handleStatusChange(updatedCar: FleetCar) {
+    setFleet((prev) =>
+      prev.map((c) => (c.id === updatedCar.id ? updatedCar : c)),
+    );
     router.refresh();
   }
 
@@ -64,6 +88,25 @@ export default function FleetListClient({ initialFleet }: Props) {
           </Link>
         </div>
 
+        {fleet.length > 0 && (
+          <div className="mb-4 flex gap-1.5">
+            {(["all", "published", "draft"] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => changeFilter(f)}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors capitalize ${
+                  statusFilter === f
+                    ? "bg-slate-900 text-white border-slate-900"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+        )}
+
         {fleet.length === 0 ? (
           <div className="py-16 text-center">
             <CarIcon className="h-10 w-10 mx-auto mb-3 text-slate-300" />
@@ -77,6 +120,13 @@ export default function FleetListClient({ initialFleet }: Props) {
               </Button>
             </Link>
           </div>
+        ) : filteredFleet.length === 0 ? (
+          <div className="py-16 text-center">
+            <CarIcon className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+            <p className="text-slate-500 font-medium">
+              No {statusFilter} cars
+            </p>
+          </div>
         ) : (
           <>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -86,6 +136,7 @@ export default function FleetListClient({ initialFleet }: Props) {
                   car={car}
                   onEdit={(c) => router.push(`/dealer/rentals/edit/${c.id}`)}
                   onDeleted={handleDeleted}
+                  onStatusChange={handleStatusChange}
                 />
               ))}
             </div>

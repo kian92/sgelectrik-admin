@@ -23,6 +23,7 @@ function toRow(b: Record<string, unknown>, rentalCompanyId: number) {
     types: Array.isArray(b.types) ? b.types : [],
     deposit_required: b.depositRequired ?? "",
     available: b.available === undefined ? true : !!b.available,
+    status: b.status === "published" ? "published" : "draft",
   };
 }
 

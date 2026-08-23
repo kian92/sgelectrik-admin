@@ -35,6 +35,9 @@ function toRow(b: Record<string, unknown>) {
       deposit_required: b.depositRequired,
     }),
     ...(b.available !== undefined && { available: !!b.available }),
+    ...(b.status !== undefined && {
+      status: b.status === "published" ? "published" : "draft",
+    }),
   };
 }
 
