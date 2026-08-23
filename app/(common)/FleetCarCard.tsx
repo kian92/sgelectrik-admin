@@ -56,13 +56,13 @@ export function FleetCarCard({ car, onEdit, onDeleted }: Props) {
 
   return (
     <Card className="border-0 shadow-sm overflow-hidden">
-      <div className="h-32 bg-slate-100 flex items-center justify-center">
+      <div className="aspect-video bg-slate-100 flex items-center justify-center">
         {car.image_id ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={car.image_id}
             alt={car.model}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
         ) : (
           <CarIcon className="h-8 w-8 text-slate-300" />
