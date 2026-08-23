@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { X, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/FileUpload";
@@ -18,6 +25,16 @@ const RENTAL_TYPE_OPTIONS = [
   "Subscription",
   "Long-term Lease",
   "Short-term Rental",
+];
+
+const BODY_TYPE_OPTIONS = [
+  "Hatchback",
+  "Sedan",
+  "Premium Sedan",
+  "SUV",
+  "Premium SUV",
+  "MPV/Van",
+  "Luxury",
 ];
 
 interface Props {
@@ -165,11 +182,21 @@ export function FleetCarForm({
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Body type</Label>
-              <Input
-                value={form.bodyType}
-                onChange={(e) => set("bodyType", e.target.value)}
-                placeholder="Sedan"
-              />
+              <Select
+                value={form.bodyType || undefined}
+                onValueChange={(v) => set("bodyType", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select body type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BODY_TYPE_OPTIONS.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
