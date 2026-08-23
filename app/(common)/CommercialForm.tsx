@@ -496,21 +496,23 @@ export function CommercialEvForm({
             <div className="space-y-2">
               <Label>Main image</Label>
               {form.imageUrl ? (
-                <div className="relative rounded-xl overflow-hidden bg-slate-100 h-40 mb-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={form.imageUrl}
-                    alt="Main preview"
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => set("imageUrl", "")}
-                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
-                    aria-label="Remove main image"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
+                  <div className="relative rounded-lg overflow-hidden bg-slate-100 aspect-video">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={form.imageUrl}
+                      alt="Main preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => set("imageUrl", "")}
+                      className="absolute top-1.5 right-1.5 bg-black/60 text-white rounded-full p-1 hover:bg-black/80"
+                      aria-label="Remove main image"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               ) : null}
               <ImageUpload
