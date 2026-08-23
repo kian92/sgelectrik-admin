@@ -236,7 +236,7 @@ export function FleetCarForm({
               <Input
                 value={form.priceFrom}
                 onChange={(e) => set("priceFrom", e.target.value)}
-                placeholder="S$120"
+                placeholder="$120"
               />
             </div>
             <div className="space-y-1">
@@ -288,7 +288,7 @@ export function FleetCarForm({
               <Input
                 value={form.depositRequired}
                 onChange={(e) => set("depositRequired", e.target.value)}
-                placeholder="S$500 — leave blank to use company default"
+                placeholder="$500 — leave blank to use company default"
               />
             </div>
           </div>

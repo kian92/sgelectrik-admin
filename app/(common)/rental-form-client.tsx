@@ -474,7 +474,7 @@ export function RentalFormClient({
                 <Input
                   value={form.depositRequired}
                   onChange={(e) => set("depositRequired", e.target.value)}
-                  placeholder="S$500"
+                  placeholder="$500"
                 />
               </div>
               <div className="space-y-1.5">

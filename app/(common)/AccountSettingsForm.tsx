@@ -650,7 +650,7 @@ export default function AccountSettingsForm({
                   id="rentalDeposit"
                   value={rentalDeposit}
                   onChange={(e) => setRentalDeposit(e.target.value)}
-                  placeholder="S$500"
+                  placeholder="$500"
                 />
               </div>
               <div className="space-y-1.5">
