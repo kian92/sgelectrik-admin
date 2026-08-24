@@ -73,9 +73,7 @@ interface DealerAnalytics {
     rental_whatsapp_click: number;
   }[];
   rental_view: number;
-  rental_car_view: number;
   rental_whatsapp_click: number;
-  rental_enquiry: number;
 }
 
 interface RecentLead {
@@ -216,15 +214,23 @@ export default function DealerDashboard() {
           const hasCarSales = services.includes("car_sales");
           const hasRentals = services.includes("rentals");
 
+          const carCount = profile?.car_ids?.length ?? 0;
+          const commercialCount = profile?.commercial_evs?.length ?? 0;
+          const rentalCount = profile?.rental_company?.fleet?.length ?? 0;
+
+          const captionParts = [];
+          if (hasCarSales) {
+            captionParts.push(`${carCount} cars`, `${commercialCount} commercial EVs`);
+          }
+          if (hasRentals) {
+            captionParts.push(`${rentalCount} rentals`);
+          }
+
           const cards = [
             {
               label: "Active Listings",
-              value:
-                (profile?.car_ids?.length ?? 0) +
-                (profile?.commercial_evs?.length ?? 0),
-              caption: profile
-                ? `${profile.car_ids?.length ?? 0} cars · ${profile.commercial_evs?.length ?? 0} commercial EVs`
-                : undefined,
+              value: carCount + commercialCount + rentalCount,
+              caption: profile ? captionParts.join(" · ") : undefined,
               icon: Car,
               color: "text-blue-600",
               bg: "bg-blue-50",
@@ -275,21 +281,21 @@ export default function DealerDashboard() {
             cards.push(
               {
                 label: "Rental profile views",
-                value: analytics?.rental_view ?? "—",
+                value: analytics?.rental_profile_view ?? "—",
                 icon: Building2,
                 color: "text-amber-600",
                 bg: "bg-amber-50",
               },
               {
                 label: "Rental listing views",
-                value: analytics?.rental_car_view ?? "—",
+                value: analytics?.rental_view ?? "—",
                 icon: Truck,
                 color: "text-cyan-600",
                 bg: "bg-cyan-50",
               },
               {
                 label: "Rental enquiries",
-                value: analytics?.rental_enquiry ?? "—",
+                value: analytics?.rental_enquiry_open ?? "—",
                 icon: Users,
                 color: "text-violet-600",
                 bg: "bg-violet-50",
