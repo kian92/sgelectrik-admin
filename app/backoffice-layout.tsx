@@ -24,6 +24,7 @@ import {
   Tag,
   Settings,
   ShieldCheck,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "./lib/utils";
@@ -47,13 +48,12 @@ const ADMIN_NAV = [
   { href: "/admin/rentals", label: "EV Rentals", icon: Car },
   { href: "/admin/commercial-evs", label: "Commercial EVs", icon: Truck },
   { href: "/admin/promotions", label: "Promotions", icon: Tag },
+  { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/staff", label: "Internal Staff", icon: ShieldCheck },
 ];
 
-const EDITOR_NAV = [
-  { href: "/admin/blog", label: "Blog", icon: BookOpen },
-];
+const EDITOR_NAV = [{ href: "/admin/blog", label: "Blog", icon: BookOpen }];
 
 const DEALER_NAV = [
   { href: "/dealer/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -64,7 +64,12 @@ const DEALER_NAV = [
     chooser: true,
     service: "car_sales",
   },
-  { href: "/dealer/rentals", label: "My Rentals", icon: Car, service: "rentals" },
+  {
+    href: "/dealer/rentals",
+    label: "My Rentals",
+    icon: Car,
+    service: "rentals",
+  },
   { href: "/dealer/leads", label: "My Leads", icon: Users },
   {
     href: "/dealer/workshops",
@@ -175,7 +180,8 @@ function Sidebar({
         {nav.map(({ href, label, icon: Icon, chooser }) => {
           const useChooser = chooser && hasCommercialEvs;
           const active = useChooser
-            ? pathname.startsWith("/dealer/cars") || pathname.startsWith("/dealer/commercial-evs")
+            ? pathname.startsWith("/dealer/cars") ||
+              pathname.startsWith("/dealer/commercial-evs")
             : pathname === href || pathname.startsWith(href + "/");
           const itemClass = cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors w-full text-left",
@@ -202,7 +208,12 @@ function Sidebar({
             );
           }
           return (
-            <Link key={href} href={href} onClick={onClose} className={itemClass}>
+            <Link
+              key={href}
+              href={href}
+              onClick={onClose}
+              className={itemClass}
+            >
               <Icon className="h-4 w-4 flex-shrink-0" />
               {label}
               {active && (
