@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   const [recentRes, monthCountRes] = await Promise.all([
     supabaseServer
       .from("leads")
-      .select("id, name, preferred_car, created_at")
+      .select("id, name, email, phone, preferred_car, created_at")
       .eq("dealer_id", id)
       .order("created_at", { ascending: false })
       .limit(limit),

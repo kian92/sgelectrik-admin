@@ -14,6 +14,8 @@ import {
   FileText,
   MessageCircle,
   ExternalLink,
+  Mail,
+  Phone,
 } from "lucide-react";
 
 interface DealerProfile {
@@ -23,6 +25,15 @@ interface DealerProfile {
   slug: string;
   car_ids: number[] | null;
   commercial_evs: { id: number; name: string }[] | null;
+}
+
+interface RecentLead {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  preferred_car: string;
+  created_at: string;
 }
 
 interface CarAnalytics {
@@ -51,6 +62,7 @@ export default function AdminDealerAnalyticsPage() {
   const [profile, setProfile] = useState<DealerProfile | null>(null);
   const [analytics, setAnalytics] = useState<DealerAnalytics | null>(null);
   const [leadsThisMonth, setLeadsThisMonth] = useState<number | null>(null);
+  const [recentLeads, setRecentLeads] = useState<RecentLead[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -69,11 +81,15 @@ export default function AdminDealerAnalyticsPage() {
         const [profileRes, analyticsRes, leadsRes] = await Promise.all([
           fetch(`/api/dealers/${params.id}`),
           fetch(`/api/dealers/${params.id}/analytics`),
-          fetch(`/api/dealers/${params.id}/leads?limit=1`),
+          fetch(`/api/dealers/${params.id}/leads?limit=10`),
         ]);
         if (profileRes.ok) setProfile(await profileRes.json());
         if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
-        if (leadsRes.ok) setLeadsThisMonth((await leadsRes.json()).countThisMonth);
+        if (leadsRes.ok) {
+          const leadsData = await leadsRes.json();
+          setLeadsThisMonth(leadsData.countThisMonth);
+          setRecentLeads(leadsData.leads);
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -183,6 +199,64 @@ export default function AdminDealerAnalyticsPage() {
           </Card>
         ))}
       </div>
+
+      <Card className="border-0 shadow-sm mb-5">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-semibold">Recent Leads</CardTitle>
+          <p className="text-xs text-slate-400">Most recent leads assigned to this dealer</p>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-14 w-full" />
+              ))}
+            </div>
+          ) : recentLeads?.length ? (
+            <div className="space-y-2">
+              {recentLeads.map((lead) => (
+                <div
+                  key={lead.id}
+                  className="flex items-center justify-between gap-4 py-2 px-3 rounded-xl bg-slate-50 flex-wrap"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Users className="h-4 w-4 text-slate-400 shrink-0" />
+                    <span className="text-sm font-medium text-slate-700 truncate">
+                      {lead.name}
+                    </span>
+                    <span className="text-xs text-slate-400 truncate">
+                      · {lead.preferred_car}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <a
+                      href={`mailto:${lead.email}`}
+                      className="flex items-center gap-1 hover:text-slate-800"
+                    >
+                      <Mail className="h-3 w-3" /> {lead.email}
+                    </a>
+                    <a
+                      href={`tel:${lead.phone}`}
+                      className="flex items-center gap-1 hover:text-slate-800"
+                    >
+                      <Phone className="h-3 w-3" /> {lead.phone}
+                    </a>
+                    <span className="text-slate-400">
+                      {new Date(lead.created_at).toLocaleDateString("en-SG", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-slate-400 text-sm py-4 text-center">No leads yet</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-2">
