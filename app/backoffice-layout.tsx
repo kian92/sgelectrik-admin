@@ -9,6 +9,7 @@ import {
   BatteryCharging,
   LayoutDashboard,
   Users,
+  UserRound,
   BookOpen,
   LogOut,
   Menu,
@@ -35,6 +36,7 @@ const ADMIN_NAV = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/claims", label: "Dealer Claims", icon: ClipboardList },
   { href: "/admin/leads", label: "Leads", icon: Users },
+  { href: "/admin/users", label: "Users", icon: UserRound },
   { href: "/admin/dealers", label: "Dealers", icon: Building2 },
   { href: "/admin/cars", label: "Cars", icon: Car },
   {
