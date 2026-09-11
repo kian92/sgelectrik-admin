@@ -2,7 +2,14 @@ import { Resend } from "resend";
 import { supabaseServer } from "@/app/lib/supabase-server";
 import { buildNewsletterEmailHtml } from "@/app/lib/newsletter-email-template";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Constructed per call: building the client at module scope throws during
+// `next build` whenever RESEND_API_KEY is absent, which fails the whole deploy.
+function getResend() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error("RESEND_API_KEY is not set");
+  return new Resend(apiKey);
+}
+
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@sgelectrik.com";
 
 /**
@@ -44,6 +51,8 @@ export async function processNewsletter(newsletterId: string) {
 
   let successCount = 0;
   let failCount = 0;
+
+  const resend = getResend();
 
   for (const r of recipients) {
     try {

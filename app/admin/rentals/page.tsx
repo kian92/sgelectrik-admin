@@ -2,6 +2,10 @@ import { Metadata } from "next";
 import { supabaseServer } from "@/app/lib/supabase-server";
 import RentalsAdminClient from "./rentals-admin-client";
 
+// Same reason as /admin/promotions: read via the Supabase client, so Next
+// would otherwise prerender this list at build time and never refresh it.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "EV Rentals | SGElectrik Admin",
 };

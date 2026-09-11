@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { buildNewsletterEmailHtml } from "@/app/lib/newsletter-email-template";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Constructed per request: building the client at module scope throws during
+// `next build` whenever RESEND_API_KEY is absent, which fails the whole deploy.
+function getResend() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error("RESEND_API_KEY is not set");
+  return new Resend(apiKey);
+}
+
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@sgelectrik.com";
 
 function isValidEmail(email: string) {
@@ -36,7 +43,7 @@ export async function POST(req: Request) {
     // ✅ built here, inside the function, where these variables exist
     const html = buildNewsletterEmailHtml({ contentHtml, ctaText, ctaUrl });
 
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from: FROM_EMAIL,
       to: testEmail,
       subject: `[TEST] ${subject}`,

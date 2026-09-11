@@ -2,7 +2,14 @@ import { supabaseServer } from "@/app/lib/supabase-server";
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Constructed per request: building the client at module scope throws during
+// `next build` whenever RESEND_API_KEY is absent, which fails the whole deploy.
+function getResend() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error("RESEND_API_KEY is not set");
+  return new Resend(apiKey);
+}
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://sgelectrik.com";
 
 type Params = { params: Promise<{ id: string }> };
@@ -39,7 +46,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   // Send email only when approving
   if (status === "active" && dealer.email) {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: `SGElectrik <${process.env.RESEND_FROM_EMAIL}>`,
       to: dealer.email,
       subject: "🎉 Your dealer account has been approved – SGElectrik",
@@ -52,7 +59,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   // Send email when rejecting
   if (status === "inactive" && dealer.email) {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: `SGElectrik <${process.env.RESEND_FROM_EMAIL}>`,
       to: dealer.email,
       subject: "Update on your dealer account – SGElectrik",
