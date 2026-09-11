@@ -40,7 +40,9 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
-  if (session.user.role !== "superadmin") {
+  const isSuperadmin = session.user.role === "superadmin";
+
+  if (!isSuperadmin) {
     const { data: existing } = await supabaseServer
       .from("promotions")
       .select("dealer_id")
@@ -50,19 +52,27 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     if (!existing) {
       return NextResponse.json({ error: "Promotion not found" }, { status: 404 });
     }
-    if (String(existing.dealer_id) !== String(session.user.id)) {
+    // A house promotion (null dealer_id) belongs to no dealer, so this also
+    // keeps dealers out of SGElectrik's own listings.
+    if (
+      existing.dealer_id == null ||
+      String(existing.dealer_id) !== String(session.user.id)
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   }
 
   const body = await req.json();
 
-  // Strip fields that should not be updated directly
-  const { id: _id, created_at: _ca, dealer_id: _dealerId, ...rest } = body;
+  // Strip fields that should not be updated directly. Only a superadmin may
+  // reassign a promotion between a dealer and SGElectrik.
+  const { id: _id, created_at: _ca, dealer_id, ...rest } = body;
+
+  const patch = isSuperadmin && "dealer_id" in body ? { ...rest, dealer_id } : rest;
 
   const { data, error } = await supabaseServer
     .from("promotions")
-    .update({ ...rest, updated_at: new Date().toISOString() })
+    .update({ ...patch, updated_at: new Date().toISOString() })
     .eq("id", id)
     .select()
     .single();
@@ -107,7 +117,11 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     if (!existing) {
       return NextResponse.json({ error: "Promotion not found" }, { status: 404 });
     }
-    if (String(existing.dealer_id) !== String(session.user.id)) {
+    // House promotions (null dealer_id) are SGElectrik's — never a dealer's.
+    if (
+      existing.dealer_id == null ||
+      String(existing.dealer_id) !== String(session.user.id)
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   }

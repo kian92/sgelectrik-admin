@@ -47,6 +47,10 @@ const EMPTY: PromotionFormState = {
   dealerId: "",
 };
 
+// Sentinel for "run by SGElectrik itself" — distinct from "" (nothing picked
+// yet) so an admin has to choose it deliberately. Maps to a null dealer_id.
+const HOUSE = "__sgelectrik__";
+
 function slugify(s: string) {
   return s
     .toLowerCase()
@@ -105,7 +109,9 @@ export default function PromotionForm({
         status: promotion.status ?? "active",
         // For dealer role always keep their own id, even in edit
         dealerId: isAdmin
-          ? String(promotion.dealer_id ?? "")
+          ? promotion.dealer_id == null
+            ? HOUSE
+            : String(promotion.dealer_id)
           : String(sessionDealerId ?? promotion.dealer_id ?? ""),
       });
     }
@@ -130,7 +136,7 @@ export default function PromotionForm({
 
   function buildPayload() {
     return {
-      dealer_id: Number(form.dealerId),
+      dealer_id: form.dealerId === HOUSE ? null : Number(form.dealerId),
       title: form.title.trim(),
       slug: form.slug.trim(),
       venue: form.venue || null,
@@ -335,7 +341,7 @@ export default function PromotionForm({
             {/* Dealer assignment — admin only */}
             {isAdmin && (
               <div className="space-y-1.5">
-                <Label>Assign to dealer *</Label>
+                <Label>Run by *</Label>
                 <Select
                   value={form.dealerId || "__none__"}
                   onValueChange={(v) =>
@@ -343,10 +349,13 @@ export default function PromotionForm({
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a dealer" />
+                    <SelectValue placeholder="Select who is running this" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">— Select dealer —</SelectItem>
+                    <SelectItem value="__none__">— Select —</SelectItem>
+                    <SelectItem value={HOUSE}>
+                      SGElectrik (house promotion)
+                    </SelectItem>
                     {dealers.map((d) => (
                       <SelectItem key={d.id} value={String(d.id)}>
                         {d.name}
@@ -355,7 +364,9 @@ export default function PromotionForm({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-slate-400">
-                  The dealer running this promotion.
+                  {form.dealerId === HOUSE
+                    ? "Shown on the public site as an SGElectrik promotion, with no dealer attached."
+                    : "The dealer running this promotion."}
                 </p>
               </div>
             )}

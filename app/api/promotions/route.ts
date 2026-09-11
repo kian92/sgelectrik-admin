@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
 
   const {
-    dealer_id,
+    dealer_id = null,
     title,
     slug,
     venue,
@@ -58,19 +58,20 @@ export async function POST(req: NextRequest) {
     status = "active",
   } = body;
 
-  if (!dealer_id || !title || !slug || !start_date || !end_date) {
+  if (!title || !slug || !start_date || !end_date) {
     return NextResponse.json(
       {
-        error:
-          "dealer_id, title, slug, start_date, and end_date are required",
+        error: "title, slug, start_date, and end_date are required",
       },
       { status: 400 },
     );
   }
 
+  // A null dealer_id is a house promotion run by SGElectrik — superadmin only.
+  // Everyone else may only create promotions against their own dealer id.
   if (
     session.user.role !== "superadmin" &&
-    String(session.user.id) !== String(dealer_id)
+    (dealer_id == null || String(session.user.id) !== String(dealer_id))
   ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

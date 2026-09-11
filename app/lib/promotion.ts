@@ -6,7 +6,8 @@ export interface Dealer {
 
 export interface Promotion {
   id: number;
-  dealer_id: number;
+  /** Null for house promotions run by SGElectrik rather than a dealer. */
+  dealer_id: number | null;
   title: string;
   slug: string;
   venue: string | null;

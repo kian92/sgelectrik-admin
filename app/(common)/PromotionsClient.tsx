@@ -66,7 +66,12 @@ export default function PromotionsClient({
     const q = search.trim().toLowerCase();
     if (!q) return promotions;
     return promotions.filter((p) => {
-      const haystack = [p.title, p.venue, p.time_range, p.dealers?.name]
+      const haystack = [
+        p.title,
+        p.venue,
+        p.time_range,
+        p.dealers?.name ?? "SGElectrik",
+      ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
@@ -247,11 +252,9 @@ export default function PromotionsClient({
                           {p.time_range}
                         </div>
                       )}
-                      {p.dealers && (
-                        <div className="text-xs text-slate-400">
-                          Owner: {p.dealers.name}
-                        </div>
-                      )}
+                      <div className="text-xs text-slate-400">
+                        Owner: {p.dealers?.name ?? "SGElectrik"}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                       <Link href={`${basePath}/edit/${p.id}`}>
