@@ -26,6 +26,7 @@ import {
   Settings,
   ShieldCheck,
   Mail,
+  CircleDollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "./lib/utils";
@@ -53,6 +54,7 @@ const ADMIN_NAV = [
   { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/staff", label: "Internal Staff", icon: ShieldCheck },
+  { href: "/admin/ev-price", label: "EV Prices", icon: CircleDollarSign },
 ];
 
 const EDITOR_NAV = [{ href: "/admin/blog", label: "Blog", icon: BookOpen }];
