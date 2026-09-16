@@ -55,6 +55,11 @@ const ADMIN_NAV = [
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/staff", label: "Internal Staff", icon: ShieldCheck },
   { href: "/admin/ev-price", label: "EV Prices", icon: CircleDollarSign },
+  {
+    href: "/admin/commercial-ev-price",
+    label: "Commercial EV Price",
+    icon: Truck,
+  },
 ];
 
 const EDITOR_NAV = [{ href: "/admin/blog", label: "Blog", icon: BookOpen }];
