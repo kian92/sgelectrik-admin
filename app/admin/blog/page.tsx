@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, type FormEvent, Suspense } from "react";
+import Image from "next/image";
 import { format } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -117,6 +118,43 @@ const EMPTY_FORM: {
   status: "draft",
   featured: false,
 };
+
+function BlogCoverThumb({
+  src,
+  title,
+  gradient,
+}: {
+  src?: string | null;
+  title: string;
+  gradient: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const showImage = Boolean(src) && !failed;
+
+  return (
+    <div className="relative flex-shrink-0 h-14 w-24 rounded-xl overflow-hidden bg-slate-100">
+      {showImage && src && (
+        <Image
+          src={src}
+          alt={title}
+          fill
+          sizes="96px"
+          unoptimized={
+            !src.includes("sgelectrik-media.b-cdn.net") &&
+            !src.includes("supabase.co")
+          }
+          className="object-cover"
+          onError={() => setFailed(true)}
+        />
+      )}
+      <div
+        className={`w-full h-full bg-gradient-to-r ${gradient} ${
+          showImage ? "hidden" : "block"
+        }`}
+      />
+    </div>
+  );
+}
 
 function slugify(t: string) {
   return t
@@ -768,10 +806,16 @@ function BlogAdminInner() {
 
                       {previewImg && (
                         <div className="relative rounded-xl overflow-hidden bg-slate-100 h-32">
-                          <img
+                          <Image
                             src={previewImg}
                             alt="Cover preview"
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="(max-width: 768px) 100vw, 600px"
+                            unoptimized={
+                              !previewImg.includes("sgelectrik-media.b-cdn.net") &&
+                              !previewImg.includes("supabase.co")
+                            }
+                            className="object-cover"
                             onError={() => setPreviewImg("")}
                           />
                           <button
@@ -1196,34 +1240,11 @@ function BlogAdminInner() {
                   }`}
                 >
                   <CardContent className="p-4 flex items-start gap-4">
-                    {/* Cover thumbnail */}
-                    <div className="flex-shrink-0 h-14 w-24 rounded-xl overflow-hidden">
-                      <div className="flex-shrink-0 h-14 w-24 rounded-xl overflow-hidden bg-slate-100">
-                        {post.cover_image ? (
-                          <img
-                            src={post.cover_image}
-                            alt={post.title}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-
-                              const fallback = e.currentTarget
-                                .nextElementSibling as HTMLElement;
-
-                              if (fallback) {
-                                fallback.style.display = "block";
-                              }
-                            }}
-                          />
-                        ) : null}
-
-                        <div
-                          className={`w-full h-full bg-gradient-to-r ${post.cover_gradient} ${
-                            post.cover_image ? "hidden" : "block"
-                          }`}
-                        />
-                      </div>
-                    </div>
+                    <BlogCoverThumb
+                      src={post.cover_image}
+                      title={post.title}
+                      gradient={post.cover_gradient}
+                    />
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">

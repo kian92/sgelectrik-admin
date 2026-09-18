@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Car as CarIcon, Gauge, Users, Zap, Pencil, Trash2 } from "lucide-react";
@@ -79,13 +80,18 @@ export function FleetCarCard({ car, onEdit, onDeleted, onStatusChange }: Props) 
 
   return (
     <Card className="border-0 shadow-sm overflow-hidden">
-      <div className="aspect-video bg-slate-100 flex items-center justify-center">
+      <div className="relative aspect-video bg-slate-100 flex items-center justify-center">
         {car.image_id ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={car.image_id}
             alt={car.model}
-            className="w-full h-full object-contain"
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            unoptimized={
+              !car.image_id.includes("sgelectrik-media.b-cdn.net") &&
+              !car.image_id.includes("supabase.co")
+            }
+            className="object-contain"
           />
         ) : (
           <CarIcon className="h-8 w-8 text-slate-300" />

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -498,11 +499,16 @@ export function CommercialEvForm({
               {form.imageUrl ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
                   <div className="relative rounded-lg overflow-hidden bg-slate-100 aspect-video">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={form.imageUrl}
                       alt="Main preview"
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 640px) 50vw, 33vw"
+                      unoptimized={
+                        !form.imageUrl.includes("sgelectrik-media.b-cdn.net") &&
+                        !form.imageUrl.includes("supabase.co")
+                      }
+                      className="object-cover"
                     />
                     <button
                       type="button"

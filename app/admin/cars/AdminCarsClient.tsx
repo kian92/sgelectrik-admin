@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -194,10 +195,15 @@ export default function AdminCarsClient({
                   <TableRow key={car.id} className="hover:bg-slate-50">
                     <TableCell>
                       {car.image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <Image
                           src={car.image_url}
                           alt={car.name}
+                          width={56}
+                          height={40}
+                          unoptimized={
+                            !car.image_url.includes("sgelectrik-media.b-cdn.net") &&
+                            !car.image_url.includes("supabase.co")
+                          }
                           className="h-10 w-14 rounded object-cover border border-slate-100"
                         />
                       ) : (
