@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -459,11 +460,17 @@ export default function PromotionForm({
             <div className="space-y-1.5">
               <Label htmlFor="image">Image</Label>
               {form.image ? (
-                <div className="relative w-full max-w-xs">
-                  <img
+                <div className="relative w-full max-w-xs aspect-video rounded-xl border border-slate-200 overflow-hidden">
+                  <Image
                     src={form.image}
                     alt="Promotion"
-                    className="w-full aspect-video object-cover rounded-xl border border-slate-200"
+                    fill
+                    sizes="(max-width: 640px) 100vw, 320px"
+                    unoptimized={
+                      !form.image.includes("sgelectrik-media.b-cdn.net") &&
+                      !form.image.includes("supabase.co")
+                    }
+                    className="object-cover"
                   />
                   <button
                     type="button"

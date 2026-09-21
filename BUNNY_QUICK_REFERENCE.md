@@ -22,8 +22,8 @@ export function MyComponent() {
 ### 2. Use Uploaded URL
 
 ```tsx
-<img src={imageUrl} alt="My image" />
-// or with Next.js
+import Image from "next/image";
+
 <Image src={imageUrl} alt="My image" width={600} height={400} />
 ```
 
@@ -149,7 +149,9 @@ const [preview, setPreview] = useState("");
     // Store URL in form/database
   }}
 />
-{preview && <img src={preview} alt="Preview" />}
+{preview && (
+  <Image src={preview} alt="Preview" width={600} height={400} />
+)}
 ```
 
 ### Pattern 2: Upload in Form Submission

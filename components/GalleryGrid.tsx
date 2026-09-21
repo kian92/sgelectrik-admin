@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { GripVertical, X } from "lucide-react";
 
 function cn(...classes: (string | undefined | null | false)[]): string {
@@ -58,11 +59,13 @@ export function GalleryGrid({ images, onReorder, onRemove, className }: GalleryG
               "ring-2 ring-emerald-400",
           )}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={url}
             alt={`Gallery ${index + 1}`}
-            className="w-full h-full object-cover pointer-events-none"
+            fill
+            sizes="(max-width: 640px) 50vw, 33vw"
+            className="object-cover pointer-events-none"
+            unoptimized={!url.includes("sgelectrik-media.b-cdn.net") && !url.includes("supabase.co")}
           />
           <div className="absolute top-1.5 left-1.5 bg-black/60 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <GripVertical className="h-3 w-3" />

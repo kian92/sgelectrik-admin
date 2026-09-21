@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
@@ -252,12 +253,12 @@ export default function AdminUsersClient({
                 className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-slate-50 transition-colors"
               >
                 {user.avatar_url ? (
-                  // Avatars come from arbitrary OAuth hosts (Google, etc.), so
-                  // they bypass next/image's configured remote patterns.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={user.avatar_url}
                     alt=""
+                    width={40}
+                    height={40}
+                    unoptimized
                     className="h-10 w-10 rounded-full object-cover flex-shrink-0"
                   />
                 ) : (
@@ -320,10 +321,12 @@ export default function AdminUsersClient({
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-3">
                   {selected.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={selected.avatar_url}
                       alt=""
+                      width={40}
+                      height={40}
+                      unoptimized
                       className="h-10 w-10 rounded-full object-cover"
                     />
                   ) : (

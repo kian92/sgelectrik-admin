@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -322,11 +323,16 @@ function DealerModal({
           <Field label="Dealer Logo">
             {form.logo_url ? (
               <div className="relative rounded-xl overflow-hidden bg-slate-100 h-24 w-24 mb-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={form.logo_url}
                   alt="Logo preview"
-                  className="w-full h-full object-contain"
+                  fill
+                  sizes="96px"
+                  unoptimized={
+                    !form.logo_url.includes("sgelectrik-media.b-cdn.net") &&
+                    !form.logo_url.includes("supabase.co")
+                  }
+                  className="object-contain"
                 />
                 <button
                   type="button"
