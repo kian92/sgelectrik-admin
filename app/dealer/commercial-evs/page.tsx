@@ -7,7 +7,9 @@ import DealerCommercialEvsClient from "./DealerCommercialEvsClient";
 
 export const dynamic = "force-dynamic";
 
-async function getDealer(email: string): Promise<{ id: number; car_ids: number[] | null } | null> {
+async function getDealer(
+  email: string,
+): Promise<{ id: number; car_ids: number[] | null } | null> {
   const { data, error } = await supabaseServer
     .from("dealers")
     .select("id, car_ids")
@@ -24,13 +26,18 @@ async function getDealer(email: string): Promise<{ id: number; car_ids: number[]
 }
 
 async function getEvs(dealerId: number) {
-  const { data } = await supabaseServer
+  const { data, error } = await supabaseServer
     .from("commercial_evs")
     .select("*")
     .eq("dealer_id", dealerId)
     .order("created_at", { ascending: false });
 
-  return (data ?? []).map((ev) => ({
+  if (error) {
+    console.error("getEvs:", error.message);
+    return [];
+  }
+
+  const mapped = (data ?? []).map((ev) => ({
     id: ev.id,
     name: ev.name,
     brand: ev.brand,
@@ -38,11 +45,13 @@ async function getEvs(dealerId: number) {
     year: ev.year,
     priceMin: ev.price_min,
     priceMax: ev.price_max,
+    hidePrice: ev.hide_price ?? false,
     rangeKm: ev.range_km,
     payloadKg: ev.payload_kg,
     status: ev.status,
     dealerSlug: ev.dealer_slug,
   }));
+  return mapped;
 }
 
 export type DealerCommercialEv = Awaited<ReturnType<typeof getEvs>>[number];

@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     mileage,
     priceMin,
     priceMax,
+    hidePrice,
     rangeKm,
     chargingTimeFast,
     chargingTimeSlow,
@@ -71,7 +72,8 @@ export async function POST(req: NextRequest) {
   try {
     nextId = await getNextCarId();
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to generate car id";
+    const message =
+      err instanceof Error ? err.message : "Failed to generate car id";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
@@ -88,6 +90,7 @@ export async function POST(req: NextRequest) {
       mileage: mileage ?? null,
       price_min: priceMin ?? 0,
       price_max: priceMax ?? 0,
+      hide_price: hidePrice ?? false,
       range_km: rangeKm ?? 0,
       charging_time_fast: chargingTimeFast ?? "",
       charging_time_slow: chargingTimeSlow ?? "",

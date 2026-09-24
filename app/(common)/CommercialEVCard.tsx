@@ -16,6 +16,7 @@ interface CommercialEv {
   year: number | null;
   priceMin: number;
   priceMax: number;
+  hidePrice: boolean;
   rangeKm: number;
   payloadKg: number | null;
   status: string;
@@ -104,6 +105,15 @@ export function CommercialEvCard({
             <Zap className="h-3.5 w-3.5 text-emerald-500" />
             {ev.rangeKm} km range
             {ev.payloadKg ? ` · ${ev.payloadKg} kg payload` : ""}
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-xs text-slate-500">Price Visible:</span>
+            <Badge
+              variant={ev.hidePrice ? "destructive" : "default"}
+              className="text-ms"
+            >
+              {ev.hidePrice ? "FALSE" : "TRUE"}
+            </Badge>
           </div>
           {ev.dealerSlug && (
             <div className="text-xs text-slate-400">

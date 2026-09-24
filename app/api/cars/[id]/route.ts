@@ -37,6 +37,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     mileage,
     priceMin,
     priceMax,
+    hidePrice,
     rangeKm,
     chargingTimeFast,
     chargingTimeSlow,
@@ -72,6 +73,9 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   if (mileage !== undefined) updatePayload.mileage = mileage ?? null;
   if (priceMin !== undefined) updatePayload.price_min = priceMin;
   if (priceMax !== undefined) updatePayload.price_max = priceMax;
+  if (hidePrice !== undefined) {
+    updatePayload.hide_price = hidePrice;
+  }
   if (rangeKm !== undefined) updatePayload.range_km = rangeKm;
   if (chargingTimeFast !== undefined)
     updatePayload.charging_time_fast = chargingTimeFast;
@@ -92,7 +96,8 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       ? galleryImages
       : [];
   }
-  if (brochureUrl !== undefined) updatePayload.brochure_url = brochureUrl ?? null;
+  if (brochureUrl !== undefined)
+    updatePayload.brochure_url = brochureUrl ?? null;
   if (description !== undefined) updatePayload.description = description;
   if (highlights !== undefined) updatePayload.highlights = highlights;
   if (featured !== undefined) updatePayload.featured = featured;
@@ -126,7 +131,9 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       await Promise.all(
         currentDealers.map((dealer) => {
           if (dealer.id === targetDealerId) return Promise.resolve();
-          const updated = (dealer.car_ids as string[]).filter((cid) => cid !== carId);
+          const updated = (dealer.car_ids as string[]).filter(
+            (cid) => cid !== carId,
+          );
           return supabaseServer
             .from("dealers")
             .update({ car_ids: updated })
@@ -185,10 +192,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteContext) {
     .contains("car_ids", JSON.stringify([carId]));
 
   if (ownerLookupError) {
-    console.error(
-      "Lookup dealers for car cleanup:",
-      ownerLookupError.message,
-    );
+    console.error("Lookup dealers for car cleanup:", ownerLookupError.message);
   }
 
   if (ownerDealers?.length) {

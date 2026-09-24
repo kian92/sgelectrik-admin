@@ -35,6 +35,7 @@ interface AdminCar {
   year: number | null;
   price_min: number;
   price_max: number;
+  hide_price: boolean;
   range_km: number;
   image_url: string;
   created_at: string;
@@ -185,6 +186,7 @@ export default function AdminCarsClient({
                   <TableHead>Condition</TableHead>
                   <TableHead>Year</TableHead>
                   <TableHead>Price</TableHead>
+                  <TableHead>Price Visible</TableHead>
                   <TableHead>Range</TableHead>
                   <TableHead>Featured</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -201,8 +203,9 @@ export default function AdminCarsClient({
                           width={56}
                           height={40}
                           unoptimized={
-                            !car.image_url.includes("sgelectrik-media.b-cdn.net") &&
-                            !car.image_url.includes("supabase.co")
+                            !car.image_url.includes(
+                              "sgelectrik-media.b-cdn.net",
+                            ) && !car.image_url.includes("supabase.co")
                           }
                           className="h-10 w-14 rounded object-cover border border-slate-100"
                         />
@@ -247,6 +250,14 @@ export default function AdminCarsClient({
                       S${car.price_min.toLocaleString()}
                       {car.price_max !== car.price_min &&
                         ` – S$${car.price_max.toLocaleString()}`}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={car.hide_price ? "destructive" : "default"}
+                        className="text-xs"
+                      >
+                        {car.hide_price ? "FALSE" : "TRUE"}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-slate-600">
                       {car.range_km} km
