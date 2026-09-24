@@ -52,6 +52,7 @@ function toRow(b: Record<string, unknown>) {
     dealer_slug: b.dealerSlug ?? "",
     price_min: b.priceMin ?? 0,
     price_max: b.priceMax ?? 0,
+    hide_price: b.hidePrice ?? false,
     range_km: b.rangeKm ?? 0,
     payload_kg: b.payloadKg ?? null,
     charging_time_fast: b.chargingTimeFast ?? "",

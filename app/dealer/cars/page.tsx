@@ -14,7 +14,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Car, Plus, Pencil, ChevronLeft, ChevronRight, Truck } from "lucide-react";
+import {
+  Car,
+  Plus,
+  Pencil,
+  ChevronLeft,
+  ChevronRight,
+  Truck,
+} from "lucide-react";
 import { DeleteCarButton } from "./DeleteCarButton";
 import { ListingTypeTabs } from "../ListingTypeTabs";
 
@@ -35,6 +42,7 @@ interface CarRow {
   year: number | null;
   price_min: number;
   price_max: number;
+  hide_price: boolean;
   range_km: number;
   image_url: string;
   created_at: string;
@@ -91,7 +99,7 @@ async function getDealerCars(
   const { data, error, count } = await supabaseServer
     .from("cars")
     .select(
-      "id, name, brand, model, car_type, condition, year, price_min, price_max, range_km, image_url, created_at",
+      "id, name, brand, model, car_type, condition, year, price_min, price_max, hide_price, range_km, image_url, created_at",
       { count: "exact" },
     )
     .in("id", numericIds)
@@ -231,7 +239,8 @@ export default async function DealerCarsPage({ searchParams }: PageProps) {
     ? dealer.car_ids.map(Number)
     : [];
   const { cars, total } = await getDealerCars(carIds, currentPage);
-  const commercialEvCount = total === 0 ? await getCommercialEvCount(dealer.id) : 0;
+  const commercialEvCount =
+    total === 0 ? await getCommercialEvCount(dealer.id) : 0;
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
   // Clamp so safePage is never beyond what exists
@@ -249,7 +258,8 @@ export default async function DealerCarsPage({ searchParams }: PageProps) {
             My Cars
           </h1>
           <p className="text-slate-500 text-sm mt-0.5">
-            {total} listing{total !== 1 ? "s" : ""} · passenger cars only — commercial EVs are managed separately
+            {total} listing{total !== 1 ? "s" : ""} · passenger cars only —
+            commercial EVs are managed separately
           </p>
         </div>
         <Button asChild className="gap-2">
@@ -281,7 +291,8 @@ export default async function DealerCarsPage({ searchParams }: PageProps) {
               <Button asChild variant="outline" className="gap-2" size="sm">
                 <Link href="/dealer/commercial-evs">
                   <Truck className="h-4 w-4" />
-                  View {commercialEvCount} commercial EV{commercialEvCount !== 1 ? "s" : ""}
+                  View {commercialEvCount} commercial EV
+                  {commercialEvCount !== 1 ? "s" : ""}
                 </Link>
               </Button>
             )}
@@ -299,6 +310,7 @@ export default async function DealerCarsPage({ searchParams }: PageProps) {
                   <TableHead>Condition</TableHead>
                   <TableHead>Year</TableHead>
                   <TableHead>Price</TableHead>
+                  <TableHead>Price Visible</TableHead>
                   <TableHead>Range</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -314,8 +326,9 @@ export default async function DealerCarsPage({ searchParams }: PageProps) {
                           width={56}
                           height={40}
                           unoptimized={
-                            !car.image_url.includes("sgelectrik-media.b-cdn.net") &&
-                            !car.image_url.includes("supabase.co")
+                            !car.image_url.includes(
+                              "sgelectrik-media.b-cdn.net",
+                            ) && !car.image_url.includes("supabase.co")
                           }
                           className="h-10 w-14 rounded object-cover border border-slate-100"
                         />
@@ -355,6 +368,14 @@ export default async function DealerCarsPage({ searchParams }: PageProps) {
                       {formatPrice(car.price_min)}
                       {car.price_max !== car.price_min &&
                         ` – ${formatPrice(car.price_max)}`}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={car.hide_price ? "destructive" : "default"}
+                        className="text-xs"
+                      >
+                        {car.hide_price ? "FALSE" : "TRUE"}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-slate-600">
                       {car.range_km} km

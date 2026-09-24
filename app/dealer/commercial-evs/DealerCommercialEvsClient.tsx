@@ -29,7 +29,10 @@ function getPageGroup(current: number, total: number) {
   return { pages };
 }
 
-export default function DealerCommercialEvsClient({ initialEvs, carCount = 0 }: Props) {
+export default function DealerCommercialEvsClient({
+  initialEvs,
+  carCount = 0,
+}: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -40,6 +43,7 @@ export default function DealerCommercialEvsClient({ initialEvs, carCount = 0 }: 
 
   const totalPages = Math.ceil(evs.length / LIMIT);
   const paginated = evs.slice((page - 1) * LIMIT, page * LIMIT);
+
   const { pages } = getPageGroup(page, totalPages);
 
   const goToPage = (p: number) => {
@@ -49,7 +53,10 @@ export default function DealerCommercialEvsClient({ initialEvs, carCount = 0 }: 
 
   const handleDeleted = (id: number) => {
     const next = evs.filter((ev) => ev.id !== id);
-    const nextPage = Math.min(page, Math.max(1, Math.ceil(next.length / LIMIT)));
+    const nextPage = Math.min(
+      page,
+      Math.max(1, Math.ceil(next.length / LIMIT)),
+    );
     setEvs(next);
     if (nextPage !== page) {
       setPage(nextPage);
@@ -65,7 +72,8 @@ export default function DealerCommercialEvsClient({ initialEvs, carCount = 0 }: 
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Commercial EVs</h1>
           <p className="text-slate-500 text-sm mt-1">
-            Electric vans, trucks, lorries and buses — separate from your passenger car listings
+            Electric vans, trucks, lorries and buses — separate from your
+            passenger car listings
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -100,7 +108,8 @@ export default function DealerCommercialEvsClient({ initialEvs, carCount = 0 }: 
               {carCount > 0 && (
                 <Link href="/dealer/cars">
                   <Button variant="outline" className="gap-2">
-                    <Car className="h-4 w-4" /> View {carCount} car{carCount !== 1 ? "s" : ""}
+                    <Car className="h-4 w-4" /> View {carCount} car
+                    {carCount !== 1 ? "s" : ""}
                   </Button>
                 </Link>
               )}

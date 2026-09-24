@@ -71,6 +71,9 @@ function toRow(b: Record<string, unknown>) {
     ...(b.dealerSlug !== undefined && { dealer_slug: b.dealerSlug }),
     ...(b.priceMin !== undefined && { price_min: b.priceMin }),
     ...(b.priceMax !== undefined && { price_max: b.priceMax }),
+    ...(b.hidePrice !== undefined && {
+      hide_price: b.hidePrice,
+    }),
     ...(b.rangeKm !== undefined && { range_km: b.rangeKm }),
     ...(b.payloadKg !== undefined && { payload_kg: b.payloadKg }),
     ...(b.chargingTimeFast !== undefined && {

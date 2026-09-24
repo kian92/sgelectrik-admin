@@ -36,6 +36,7 @@ interface ExistingCar {
   model: string;
   price_min: number;
   price_max: number;
+  hide_price?: boolean;
   range_km: number;
   car_type?: string;
   charging_time_fast?: string;
@@ -124,6 +125,7 @@ function buildInitialForm(existing?: ExistingCar) {
       mileage: "",
       priceMin: "",
       priceMax: "",
+      hidePrice: false,
       rangeKm: "",
       chargingTimeFast: "",
       chargingTimeSlow: "",
@@ -152,6 +154,7 @@ function buildInitialForm(existing?: ExistingCar) {
     mileage: existing.mileage != null ? String(existing.mileage) : "",
     priceMin: existing.price_min != null ? String(existing.price_min) : "",
     priceMax: existing.price_max != null ? String(existing.price_max) : "",
+    hidePrice: existing.hide_price ?? false,
     rangeKm: existing.range_km != null ? String(existing.range_km) : "",
     chargingTimeFast: existing.charging_time_fast ?? "",
     chargingTimeSlow: existing.charging_time_slow ?? "",
@@ -234,6 +237,7 @@ export function CarForm({
       mileage: form.mileage ? parseInt(form.mileage) : null,
       priceMin: parseInt(form.priceMin) || 0,
       priceMax: parseInt(form.priceMax) || 0,
+      hidePrice: form.hidePrice,
       rangeKm: parseInt(form.rangeKm) || 0,
       chargingTimeFast: form.chargingTimeFast,
       chargingTimeSlow: form.chargingTimeSlow,
@@ -496,6 +500,22 @@ export function CarForm({
                 />
               </div>
             </div>
+            <div className="flex items-center gap-3 pt-1">
+              <Checkbox
+                id="hidePrice"
+                checked={form.hidePrice}
+                onCheckedChange={(v) => set("hidePrice", !!v)}
+              />
+
+              <Label htmlFor="hidePrice" className="cursor-pointer font-normal">
+                Hide price on frontend
+              </Label>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              When enabled, the actual price will not be shown on the public
+              website.
+            </p>
 
             {/* Rebate */}
             <div className="flex items-center gap-3 pt-1">

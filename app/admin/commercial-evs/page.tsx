@@ -20,6 +20,7 @@ async function getEvs() {
     year: ev.year,
     priceMin: ev.price_min,
     priceMax: ev.price_max,
+    hidePrice: ev.hide_price ?? false,
     rangeKm: ev.range_km,
     payloadKg: ev.payload_kg,
     status: ev.status,
@@ -32,7 +33,8 @@ export type CommercialEv = Awaited<ReturnType<typeof getEvs>>[number];
 
 export default async function AdminCommercialEvsPage() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "superadmin") redirect("/backoffice-login");
+  if (!session || session.user.role !== "superadmin")
+    redirect("/backoffice-login");
 
   const evs = await getEvs();
 

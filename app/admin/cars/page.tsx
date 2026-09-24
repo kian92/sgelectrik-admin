@@ -26,6 +26,7 @@ interface CarRow {
   year: number | null;
   price_min: number;
   price_max: number;
+  hide_price: boolean;
   range_km: number;
   image_url: string;
   created_at: string;
@@ -50,7 +51,7 @@ async function getCars(): Promise<CarRow[]> {
   const { data, error } = await supabaseServer
     .from("cars")
     .select(
-      "id, name, brand, model, car_type, condition, year, price_min, price_max, range_km, image_url, created_at, featured",
+      "id, name, brand, model, car_type, condition, year, price_min, price_max, hide_price, range_km, image_url, created_at, featured",
     )
     .neq("status", "inactive")
     .order("created_at", { ascending: false });
